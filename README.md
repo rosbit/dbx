@@ -43,7 +43,7 @@
 
  - Insert/Update/Delete
    ```go
-   user := &User{
+   user := User{
       Id: 0,
       Name: "hi",
    }
@@ -76,7 +76,8 @@
        Bean: &User{},
        ExArgs: []interface{}{balance, userId},
      }
-   
+  
+     // call RunTx to run a transaction. Commit if no error ocurrs, otherwise it will rollback. 
      return db.RunTx(firstStep, map[int]dbx.TxStepHandler {
         tx_find_user: user_found,
         tx_find_balance: balance_found,
