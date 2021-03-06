@@ -13,11 +13,24 @@ type (
 	StmtResult interface {}
 
 	Stmt interface {
-		Exec(bean interface{}, session *Session) (StmtResult, error)
+		Exec(bean interface{}, session ...*Session) (StmtResult, error)
 	}
 
-	Eq interface {
+	Cond interface {
 		makeCond(sess *Session) *Session
+	}
+
+	By interface {
+		makeBy(sess *Session) *Session
+	}
+
+	Limit interface {
+		makeLimit(sess *Session) *Session
+	}
+
+	O struct {
+		Bys []By
+		Count Limit
 	}
 )
 

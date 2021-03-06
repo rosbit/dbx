@@ -22,8 +22,8 @@ func (stmt *sqlStmt) Iter(bean interface{}) (<-chan interface{}) {
 }
 
 func (stmt *listStmt) iter(sess *Session, bean interface{}) (<-chan interface{}) {
-	if stmt.limit.count > 0 {
-		sess = sess.Limit(stmt.limit.count, stmt.limit.offset)
+	if stmt.limit != nil {
+		sess = stmt.limit.makeLimit(sess)
 	}
 	return iter(sess, bean)
 }
@@ -77,8 +77,8 @@ func (stmt *innerJoinStmt) Iterate(bean interface{}, it FnIterate) error {
 }
 
 func (stmt *listStmt) iterate(sess *Session, bean interface{}, it FnIterate) error {
-	if stmt.limit.count > 0 {
-		sess = sess.Limit(stmt.limit.count, stmt.limit.offset)
+	if stmt.limit != nil {
+		sess = stmt.limit.makeLimit(sess)
 	}
 	return sess.Iterate(bean, it)
 }
