@@ -123,8 +123,8 @@ func NewVoidStmt() *voidStmt {
 }
 
 // some re-usable handler
-func (db *DBI) GetById(tblName, idName string, idVal interface{}, res interface{}) (bool, error) {
-	stmt := db.NewQueryStmt(tblName, []Cond{NewEq(idName, idVal)})
+func (db *DBI) GetBy(tblName, colName string, colVal interface{}, res interface{}) (bool, error) {
+	stmt := db.NewQueryStmt(tblName, []Cond{Eq(colName, colVal)})
 	res, err := stmt.Exec(res, nil)
 	if err != nil {
 		return false, err
@@ -132,7 +132,7 @@ func (db *DBI) GetById(tblName, idName string, idVal interface{}, res interface{
 	return res.(bool), err
 }
 
-func (db *DBI) GetOne(tblName string, conds []Cond, res interface{}) (bool, error) {
+func (db *DBI) Get(tblName string, conds []Cond, res interface{}) (bool, error) {
 	stmt := db.NewQueryStmt(tblName, conds)
 	res, err := stmt.Exec(res, nil)
 	if err != nil {
@@ -157,7 +157,7 @@ func (db *DBI) Select(tblName string, fields []string, conds []Cond, res interfa
 	return err
 }
 
-func (db *DBI) SQL(tblName string, sql string, res interface{}) error {
+func (db *DBI) RunSQL(tblName string, sql string, res interface{}) error {
 	stmt := db.NewSqlStmt(tblName, sql)
 	_, err := stmt.Exec(res, nil)
 	return err
@@ -173,14 +173,14 @@ func (db *DBI) Iterate(tblName string, conds []Cond, bean interface{}, it FnIter
 	return stmt.Iterate(bean, it)
 }
 
-func GetById(tblName, idName string, idVal interface{}, res interface{}) (bool, error) {
+func GetBy(tblName, colName string, colVal interface{}, res interface{}) (bool, error) {
 	db := getDefaultConnection()
-	return db.GetById(tblName, idName, idVal, res)
+	return db.GetBy(tblName, colName, colVal, res)
 }
 
-func GetOne(tblName string, conds []Cond, res interface{}) (bool, error) {
+func Get(tblName string, conds []Cond, res interface{}) (bool, error) {
 	db := getDefaultConnection()
-	return db.GetOne(tblName, conds, res)
+	return db.Get(tblName, conds, res)
 }
 
 func Find(tblName string, conds []Cond, res interface{}, count ...Limit) error {
@@ -193,9 +193,9 @@ func Select(tblName string, fields []string, conds []Cond, res interface{}) erro
 	return db.Select(tblName, fields, conds, res)
 }
 
-func SQL(tblName string, sql string, res interface{}) error {
+func RunSQL(tblName string, sql string, res interface{}) error {
 	db := getDefaultConnection()
-	return db.SQL(tblName, sql, res)
+	return db.RunSQL(tblName, sql, res)
 }
 
 func Iter(tblName string, conds []Cond, bean interface{}) (<-chan interface{}) {
