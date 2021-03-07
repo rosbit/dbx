@@ -25,7 +25,7 @@ func RunTx(firstStep *TxNextStep, stepHandlers StepHandlers) (err error) {
 
 // run a transation step by step
 func (db *DBI) RunTx(firstStep *TxNextStep, stepHandlers StepHandlers) (err error) {
-	if firstStep == nil || stepHandlers == nil || len(stepHandlers) == 0 {
+	if firstStep == nil || len(stepHandlers) == 0 {
 		return fmt.Errorf("bad request for calling RunTx")
 	}
 
@@ -47,8 +47,12 @@ func (db *DBI) RunTx(firstStep *TxNextStep, stepHandlers StepHandlers) (err erro
 	}
 
 	nextStep := firstStep
-
 	for {
+		if nextStep == nil || nextStep.Stmt == nil {
+			session.Commit()
+			return nil
+		}
+
 		stmt, bean, step := nextStep.Stmt, nextStep.Bean, nextStep.Step
 		handleTxStep, ok := stepHandlers[step]
 		if !ok {
@@ -72,13 +76,10 @@ func (db *DBI) RunTx(firstStep *TxNextStep, stepHandlers StepHandlers) (err erro
 			return nil
 		}
 
-		nextStep, err = handleTxStep(&TxPrevStepRes{Session:session, Step:step, Bean:bean, Res:res, ExArgs:nextStep.ExArgs})
-		if err != nil {
+		if nextStep, err = handleTxStep(
+			&TxPrevStepRes{Session:session, Step:step, Bean:bean, Res:res, ExArgs:nextStep.ExArgs},
+		); err != nil {
 			return err
-		}
-		if nextStep == nil || nextStep.Stmt == nil {
-			session.Commit()
-			return nil
 		}
 	}
 }
