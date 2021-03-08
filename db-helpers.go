@@ -1,6 +1,7 @@
 package dbx
 
 import (
+	"reflect"
 	"fmt"
 )
 
@@ -57,14 +58,40 @@ func Sql(sql string) Cond {
 }
 
 func copy_i(vals ...interface{}) []interface{} {
-	if len(vals) == 0 {
+	switch len(vals) {
+	case 0:
+		// no args
 		return nil
+	case 1:
+		// only 1 arg
+		if vals[0] == nil {
+			// the arg is nil
+			return nil
+		}
+
+		// whether the arg is array or slice
+		val := reflect.ValueOf(vals[0])
+		switch val.Kind() {
+		case reflect.Array, reflect.Slice:
+		default:
+			// not array/slice, wrap it as a slice
+			return []interface{}{vals[0]}
+		}
+
+		// convert array/slice into []interface{}
+		arrLen := val.Len()
+		if arrLen == 0 {
+			return nil
+		}
+		vs := make([]interface{}, arrLen)
+		for i:=0; i<arrLen; i++ {
+			vs[i] = val.Index(i).Interface()
+		}
+		return vs
+	default:
+		// args is []interface{}, return it directly
+		return vals
 	}
-	vs := make([]interface{}, len(vals))
-	for i, _ := range vals {
-		vs[i] = vals[i]
-	}
-	return vs
 }
 
 func OrderByDesc(field ...string) By {
