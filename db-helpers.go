@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func Conds(eq ...Cond) []Cond {
+func Where(eq ...Cond) []Cond {
 	return eq
 }
 

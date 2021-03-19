@@ -22,16 +22,16 @@
    }
 
    var user User
-   has, err := db.Get("user", dbx.Conds(dbx.Eq("id", 1)), &user)
+   has, err := db.Get("user", dbx.Where(dbx.Eq("id", 1)), &user)
    has, err := db.GetBy("user", "id", 1, &user)
-   res, err := db.NewQueryStmt("user", dbx.Conds(dbx.Eq("id", 1))).Exec(&user)
+   res, err := db.NewQueryStmt("user", dbx.Where(dbx.Eq("id", 1))).Exec(&user)
 
    var users []User
-   err := db.Find("user", dbx.Conds(dbx.Op("id", ">", 1)), &users, dbx.O{Count:LimitCount(10)})
-   err := db.Select("user", dbx.Cols("id","name"), dbx.Conds(dbx.Eq("id", 1)), &users)
+   err := db.Find("user", dbx.Where(dbx.Op("id", ">", 1)), &users, dbx.O{Count:LimitCount(10)})
+   err := db.Select("user", dbx.Cols("id","name"), dbx.Where(dbx.Eq("id", 1)), &users)
    err := db.RunSQL("user", "select id,name from user", &users)
 
-   c, err := db.Iter("user", dbx.Conds(dbx.Op("id", ">=", 1)), &user)
+   c, err := db.Iter("user", dbx.Where(dbx.Op("id", ">=", 1)), &user)
    if err == nil {
        for u := range c {
             user := u.(*User)
@@ -49,9 +49,9 @@
    _, err := db.NewInsertStmt("user").Exec(&user)
 
    user.Name = "haha"
-   _, err := db.NewUpdateStmt("user", dbx.Conds(dbx.Eq("id", 1)), dbx.Cols("name")).Exec(&user)
+   _, err := db.NewUpdateStmt("user", dbx.Where(dbx.Eq("id", 1)), dbx.Cols("name")).Exec(&user)
 
-   _, err := db.NewDeleteStmt("user", dbx.Conds(dbx.Eq("id", 1))).Exec(&user)
+   _, err := db.NewDeleteStmt("user", dbx.Where(dbx.Eq("id", 1))).Exec(&user)
    ```
 
  - Transanction
@@ -71,7 +71,7 @@
    func IncUserBalance(userId int, balance int) error {
      firstStep := &dbx.TxNextStep {
      Step: tx_find_user,
-       Stmt: db.NewQueryStmt("user", dbx.Conds(dbx.Eq("id", userId))),
+       Stmt: db.NewQueryStmt("user", dbx.Where(dbx.Eq("id", userId))),
        Bean: &User{},
        ExArgs: []interface{}{balance, userId},
      }
@@ -95,7 +95,7 @@
       exArgs := step.ExArgs
       return &dbx.TxNextStep{
    	   Step: tx_find_balance,
-		   Stmt: db.NewQueryStmt("balance", dbx.Conds(dbx.Eq("user_id", user.Id))),
+		   Stmt: db.NewQueryStmt("balance", dbx.Where(dbx.Eq("user_id", user.Id))),
 		   Bean: &Balance{},
 		   ExArgs: exArgs,
 	   }, nil
@@ -120,7 +120,7 @@
       balance += incBalance
       return &dbx.TxNextStep{
           Step: tx_inc_balance,
-          Stmt: db.NewUpdateStmt("balance", dbx.Conds(dbx.Eq("user_id", userId)), dbx.Cols("balance)),
+          Stmt: db.NewUpdateStmt("balance", dbx.Where(dbx.Eq("user_id", userId)), dbx.Cols("balance)),
           Bean: balance,
       }, nil
    }
