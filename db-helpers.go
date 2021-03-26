@@ -31,7 +31,7 @@ func Op(fieldName string, op string, val ...interface{}) Cond {
 }
 
 // f1, v1, f2, v2, ... => (f1=v1 OR f2=v2 OR ...)
-func Or(fieldName string, val ...interface{}) Cond {
+func OrEq(fieldName string, val ...interface{}) Cond {
 	fields := []string{fieldName}
 	vals := []interface{}{}
 
@@ -43,6 +43,10 @@ func Or(fieldName string, val ...interface{}) Cond {
 		}
 	}
 	return &orCond{fields, vals}
+}
+
+func Or(cond ...string) Cond {
+	return &orxCond{cond}
 }
 
 func In(fieldName string, val ...interface{}) Cond {

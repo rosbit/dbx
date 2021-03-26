@@ -56,6 +56,19 @@ func (e *orCond) makeCond(sess *Session) *Session {
 	}
 }
 
+type orxCond struct {
+	conds []string
+}
+func (e *orxCond) makeCond(sess *Session) *Session {
+	c := len(e.conds)
+	switch c {
+	case 0:
+		return sess
+	default:
+		return sess.And(strings.Join(e.conds, " OR "))
+	}
+}
+
 type inCond struct {
 	field string
 	val []interface{}
