@@ -125,7 +125,7 @@ func NewVoidStmt() *voidStmt {
 // some re-usable handler
 func (db *DBI) GetBy(tblName, colName string, colVal interface{}, res interface{}) (bool, error) {
 	stmt := db.NewQueryStmt(tblName, []Cond{Eq(colName, colVal)})
-	res, err := stmt.Exec(res, nil)
+	res, err := stmt.Exec(res)
 	if err != nil {
 		return false, err
 	}
@@ -134,7 +134,7 @@ func (db *DBI) GetBy(tblName, colName string, colVal interface{}, res interface{
 
 func (db *DBI) Get(tblName string, conds []Cond, res interface{}) (bool, error) {
 	stmt := db.NewQueryStmt(tblName, conds)
-	res, err := stmt.Exec(res, nil)
+	res, err := stmt.Exec(res)
 	if err != nil {
 		return false, err
 	}
@@ -147,19 +147,34 @@ func (db *DBI) Find(tblName string, conds []Cond, res interface{}, count ...Limi
 		options.Count = count[0]
 	}
 	stmt := db.NewListStmt(tblName, conds, options)
-	_, err := stmt.Exec(res, nil)
+	_, err := stmt.Exec(res)
 	return err
 }
 
 func (db *DBI) Select(tblName string, fields []string, conds []Cond, res interface{}) error {
 	stmt := db.NewSelectStmt(tblName, fields, conds)
-	_, err := stmt.Exec(res, nil)
+	_, err := stmt.Exec(res)
+	return err
+}
+
+func (db *DBI) Insert(tblName string, vals interface{}) error {
+	_, err := db.NewInsertStmt(tblName).Exec(vals)
+	return err
+}
+
+func (db *DBI) Update(tblName string, conds []Cond, cols []string, vals interface{}) error {
+	_, err := db.NewUpdateStmt(tblName, conds, cols).Exec(vals)
+	return err
+}
+
+func (db *DBI) Delete(tblName string, conds []Cond, vals interface{}) error {
+	_, err := db.NewDeleteStmt(tblName, conds).Exec(vals)
 	return err
 }
 
 func (db *DBI) RunSQL(tblName string, sql string, res interface{}) error {
 	stmt := db.NewSqlStmt(tblName, sql)
-	_, err := stmt.Exec(res, nil)
+	_, err := stmt.Exec(res)
 	return err
 }
 
@@ -191,6 +206,21 @@ func Find(tblName string, conds []Cond, res interface{}, count ...Limit) error {
 func Select(tblName string, fields []string, conds []Cond, res interface{}) error {
 	db := getDefaultConnection()
 	return db.Select(tblName, fields, conds, res)
+}
+
+func Insert(tblName string, vals interface{}) error {
+	db := getDefaultConnection()
+	return db.Insert(tblName, vals)
+}
+
+func Update(tblName string, conds []Cond, cols []string, vals interface{}) error {
+	db := getDefaultConnection()
+	return db.Update(tblName, conds, cols, vals)
+}
+
+func Delete(tblName string, conds []Cond, vals interface{}) error {
+	db := getDefaultConnection()
+	return db.Delete(tblName, conds, vals)
 }
 
 func RunSQL(tblName string, sql string, res interface{}) error {
