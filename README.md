@@ -46,11 +46,14 @@
       Id: 0,
       Name: "hi",
    }
+   err := db.Insert("user", &user)
    _, err := db.NewInsertStmt("user").Exec(&user)
 
    user.Name = "haha"
+   err := db.Update("user", dbx.Where(dbx.Eq("id", 1)), dbx.Cols("name"), &user)
    _, err := db.NewUpdateStmt("user", dbx.Where(dbx.Eq("id", 1)), dbx.Cols("name")).Exec(&user)
 
+   err := db.Delete("user", dbx.Where(dbx.Eq("id", 1)), &user)
    _, err := db.NewDeleteStmt("user", dbx.Where(dbx.Eq("id", 1))).Exec(&user)
    ```
 
