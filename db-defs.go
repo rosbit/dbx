@@ -28,10 +28,12 @@ type (
 		makeLimit(sess *Session) *Session
 	}
 
-	O struct {
+	Options struct {
 		Bys []By
 		Count Limit
 	}
+
+	O func(opts *Options)
 )
 
 // --- transaction ---

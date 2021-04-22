@@ -1,28 +1,25 @@
 package dbx
 
 func (db *DBI) NewQueryStmt(tblName string, conds []Cond, options ...O) *queryStmt {
-	var bys []By
-	if len(options) > 0 {
-		bys = options[0].Bys
+	opts := &Options{}
+	for _, opt := range options {
+		opt(opts)
 	}
+
 	return &queryStmt{
 		execStmt: &execStmt{
 			engine: db,
 			table: tblName,
 			conds: conds,
 		},
-		bys: bys,
+		bys: opts.Bys,
+		limit: opts.Count,
 	}
 }
 
 func (db *DBI) NewListStmt(tblName string, conds []Cond, options ...O) *listStmt {
-	var limit Limit
-	if len(options) > 0 {
-		limit = options[0].Count
-	}
 	return &listStmt{
 		queryStmt: db.NewQueryStmt(tblName, conds, options...),
-		limit: limit,
 	}
 }
 
@@ -141,12 +138,8 @@ func (db *DBI) Get(tblName string, conds []Cond, res interface{}) (bool, error) 
 	return res.(bool), err
 }
 
-func (db *DBI) Find(tblName string, conds []Cond, res interface{}, count ...Limit) error {
-	var options O
-	if len(count) > 0 {
-		options.Count = count[0]
-	}
-	stmt := db.NewListStmt(tblName, conds, options)
+func (db *DBI) Find(tblName string, conds []Cond, res interface{}, options ...O) error {
+	stmt := db.NewListStmt(tblName, conds, options...)
 	_, err := stmt.Exec(res)
 	return err
 }
@@ -198,9 +191,9 @@ func Get(tblName string, conds []Cond, res interface{}) (bool, error) {
 	return db.Get(tblName, conds, res)
 }
 
-func Find(tblName string, conds []Cond, res interface{}, count ...Limit) error {
+func Find(tblName string, conds []Cond, res interface{}, options ...O) error {
 	db := getDefaultConnection()
-	return db.Find(tblName, conds, res, count...)
+	return db.Find(tblName, conds, res, options...)
 }
 
 func Select(tblName string, fields []string, conds []Cond, res interface{}) error {

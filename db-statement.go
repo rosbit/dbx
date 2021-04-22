@@ -57,6 +57,7 @@ func (stmt *execStmt) createExecSession(session []*Session, extraQuery ...map[st
 type queryStmt struct {
 	*execStmt
 	bys []By
+	limit Limit
 }
 func (stmt *queryStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
 	sess := stmt.createQuerySession(session)
@@ -70,12 +71,14 @@ func (stmt *queryStmt) createQuerySession(session []*Session, extraQuery ...map[
 		sess = b.makeBy(sess)
 	}
 
+	if stmt.limit != nil {
+		sess = stmt.limit.makeLimit(sess)
+	}
 	return sess
 }
 
 type listStmt struct {
 	*queryStmt
-	limit Limit
 }
 func (stmt *listStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
 	sess := stmt.queryStmt.createQuerySession(session)
@@ -83,9 +86,6 @@ func (stmt *listStmt) Exec(bean interface{}, session ...*Session) (StmtResult, e
 }
 
 func (stmt *listStmt) find(sess *Session, bean interface{}) (StmtResult, error) {
-	if stmt.limit != nil {
-		sess = stmt.limit.makeLimit(sess)
-	}
 	err := sess.Find(bean)
 	return nil, err
 }

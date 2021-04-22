@@ -98,26 +98,34 @@ func copy_i(vals ...interface{}) []interface{} {
 	}
 }
 
-func OrderByDesc(field ...string) By {
-	return &descOrderBy{field}
-}
-
-func OrderByAsc(field ...string) By {
-	return &ascOrderBy{field}
-}
-
-func GroupBy(field string) By {
-	return &groupBy{field}
-}
-
-func LimitCount(count int, offset ...int) Limit {
-	if count <= 0 {
-		return nil
+func OrderByDesc(field ...string) O {
+	return func(opts *Options) {
+		opts.Bys = append(opts.Bys, &descOrderBy{field})
 	}
-	l := &limitT{count:count}
-	if len(offset) > 0 && offset[0] >= 0 {
-		l.offset = offset[0]
-	}
-	return l
 }
 
+func OrderByAsc(field ...string) O {
+	return func(opts *Options) {
+		opts.Bys = append(opts.Bys, &ascOrderBy{field})
+	}
+}
+
+func GroupBy(field string) O {
+	return func(opts *Options) {
+		opts.Bys = append(opts.Bys, &groupBy{field})
+	}
+}
+
+func LimitCount(count int, offset ...int) O {
+	return func(opts *Options) {
+		if count <= 0 {
+			return
+		}
+
+		l := &limitT{count:count}
+		if len(offset) > 0 && offset[0] >= 0 {
+			l.offset = offset[0]
+		}
+		opts.Count = l
+	}
+}

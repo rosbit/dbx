@@ -27,7 +27,7 @@
    res, err := db.NewQueryStmt("user", dbx.Where(dbx.Eq("id", 1))).Exec(&user)
 
    var users []User
-   err := db.Find("user", dbx.Where(dbx.Op("id", ">", 1)), &users, dbx.O{Count:LimitCount(10)})
+   err := db.Find("user", dbx.Where(dbx.Op("id", ">", 1)), &users, dbx.OrderByDesc("id"), dbx.LimitCount(10))
    err := db.Select("user", dbx.Cols("id","name"), dbx.Where(dbx.Eq("id", 1)), &users)
    err := db.RunSQL("user", "select id,name from user", &users)
 
