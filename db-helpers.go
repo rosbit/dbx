@@ -9,10 +9,6 @@ func Where(eq ...Cond) []Cond {
 	return eq
 }
 
-func Bys(by ...By) []By {
-	return by
-}
-
 func Cols(field ...string) []string {
 	return field
 }
@@ -100,32 +96,32 @@ func copy_i(vals ...interface{}) []interface{} {
 
 func OrderByDesc(field ...string) O {
 	return func(opts *Options) {
-		opts.Bys = append(opts.Bys, &descOrderBy{field})
+		opts.bys = append(opts.bys, &descOrderBy{field})
 	}
 }
 
 func OrderByAsc(field ...string) O {
 	return func(opts *Options) {
-		opts.Bys = append(opts.Bys, &ascOrderBy{field})
+		opts.bys = append(opts.bys, &ascOrderBy{field})
 	}
 }
 
 func GroupBy(field string) O {
 	return func(opts *Options) {
-		opts.Bys = append(opts.Bys, &groupBy{field})
+		opts.bys = append(opts.bys, &groupBy{field})
 	}
 }
 
-func LimitCount(count int, offset ...int) O {
+func Limit(count int, offset ...int) O {
 	return func(opts *Options) {
 		if count <= 0 {
 			return
 		}
 
-		l := &limitT{count:count}
+		l := &limitOffset{count:count}
 		if len(offset) > 0 && offset[0] >= 0 {
 			l.offset = offset[0]
 		}
-		opts.Count = l
+		opts.limit = l
 	}
 }

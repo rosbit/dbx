@@ -122,11 +122,11 @@ func (o *groupBy) makeBy(sess *Session) *Session {
 }
 
 // implementation of interface Limit
-type limitT struct {
+type limitOffset struct {
 	offset int
 	count int
 }
-func (l *limitT) makeLimit(sess *Session) *Session {
+func (l *limitOffset) makeLimit(sess *Session) *Session {
 	if l.count > 0 {
 		sess = sess.Limit(l.count, l.offset)
 	}

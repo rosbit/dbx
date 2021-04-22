@@ -20,17 +20,17 @@ type (
 		makeCond(sess *Session) *Session
 	}
 
-	By interface {
+	by interface {
 		makeBy(sess *Session) *Session
 	}
 
-	Limit interface {
+	limit interface {
 		makeLimit(sess *Session) *Session
 	}
 
 	Options struct {
-		Bys []By
-		Count Limit
+		bys []by
+		limit limit
 	}
 
 	O func(opts *Options)

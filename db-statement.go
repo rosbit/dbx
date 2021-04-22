@@ -56,8 +56,8 @@ func (stmt *execStmt) createExecSession(session []*Session, extraQuery ...map[st
 
 type queryStmt struct {
 	*execStmt
-	bys []By
-	limit Limit
+	bys []by
+	limit limit
 }
 func (stmt *queryStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
 	sess := stmt.createQuerySession(session)

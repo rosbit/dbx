@@ -12,8 +12,8 @@ func (db *DBI) NewQueryStmt(tblName string, conds []Cond, options ...O) *querySt
 			table: tblName,
 			conds: conds,
 		},
-		bys: opts.Bys,
-		limit: opts.Count,
+		bys: opts.bys,
+		limit: opts.limit,
 	}
 }
 
