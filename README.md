@@ -57,6 +57,55 @@
    _, err := db.NewDeleteStmt("user", dbx.Where(dbx.Eq("id", 1))).Exec(&user)
    ```
 
+ - Conditions
+   ```go
+   // conditions can be grouped by dbx.Where()
+
+   // And
+   dbx.Eq("a", 1)
+   dbx.Op("b", ">", 2))  // -> where
+
+   dbx.Where(dbx.Eq("a", 1), dbx.Op("b", ">", 2))
+   dbx.Where(dbx.And("a=1", "b>2"))
+
+   // Or
+   dbx.Or("a=1", "b<2", "c>=3") // -> where
+   dbx.Where(dbx.Or("a=1", "b<2", "c>=3"))
+
+   dbx.Where(dbx.OrEq("a", 1, "b", 2, "c", 3)) // -> "a=1" "b=2 "c=3"
+
+   // IN
+   dbx.In("id", 1, 3, 5)
+   dbx.In("id", []int{1, 3, 5}) // -> where
+
+   dbx.Where(dbx.In("id", 1, 3, 5))
+   dbx.Where(dbx.In("id", []int{1, 3, 5}))
+
+   // not IN
+   dbx.NotIn("id", 1, 3, 5)
+   dbx.NotIn("id", []int{1, 3, 5}) // -> where
+
+   dbx.Where(dbx.NotIn("id", 1, 3, 5))
+   dbx.Where(dbx.NotIn("id", []int{1, 3, 5}))
+
+   // SQL
+   dbx.Where(dbx.Sql("select id,name from user"))
+   ```
+
+ - Options
+   ```go
+   // sorting
+   dbx.OrderByDesc("id", "name")
+   dbx.OrderByAsc("id", "name")
+
+   // grouping
+   dbx.GroupBy("id")
+
+   // limit count
+   dbx.Limit(10)
+   dbx.Limit(20, 100)  // offset: 100, count: 20
+   ```
+
  - Transanction
    ```go
    type Balance {
