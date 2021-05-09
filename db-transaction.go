@@ -66,6 +66,14 @@ func (step *TxStepRes) Arg(key ArgKey) (arg interface{}) {
 	return
 }
 
+func (step *TxStepRes) Session() (*Session) {
+	return step.session
+}
+
+func (step *TxStepRes) DB() (*DBI) {
+	return step.db
+}
+
 // run a transation step by step
 func RunTx(firstStep *TxStep, stepHandlers StepHandlers) (err error) {
 	db := getDefaultConnection()
@@ -117,7 +125,7 @@ func (db *DBI) RunTx(firstStep *TxStep, stepHandlers StepHandlers) (err error) {
 			return nil
 		}
 
-		if nextStep, err = handleTxStep(&TxStepRes{session, step, bean, res, args}); err != nil {
+		if nextStep, err = handleTxStep(&TxStepRes{session, db, step, bean, res, args}); err != nil {
 			return err
 		}
 	}

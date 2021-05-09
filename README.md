@@ -10,11 +10,11 @@
 
  - Create db instance
    ```go
-   dataSourceName := dbx.GenerateMysqlDSN(dbx.DBName("test"), dbx.WithAttr("charset", "utf8mb4"))
+   dataSourceName := dbx.GenerateMysqlDSN(dbx.DBName("test"), dbx.Attr("charset", "utf8mb4"))
    dataSourceName := dbx.GenerateMysqlDSN(dbx.Host("127.0.0.1"))
    dataSourceName := dbx.GenerateMysqlDSN(dbx.Host("127.0.0.1", 3306))
    dataSourceName := dbx.GenerateMysqlDSN(dbx.DomainSocket("/tmp/mysql.sock"))
-
+   
    err := dbx.CreateMysqlConnection(dataSourceName, debug)
    db, err := dbx.CreateMysqlInstance(dataSourceName, debug)
    db, err := dbx.CreateDBDriverConnection("mysql", dataSourceName, debug)
@@ -29,14 +29,18 @@
    
    var user User
    has, err := db.Get("user", dbx.Where(dbx.Eq("id", 1)), &user)
+   has, err := db.GetOne("user", dbx.Where(dbx.Eq("id", 1)), &user)
    has, err := db.GetBy("user", "id", 1, &user)
    res, err := db.QueryStmt("user", dbx.Where(dbx.Eq("id", 1))).Exec(&user)
    
    var users []User
+   err := db.List("user", dbx.Where(dbx.Op("id", ">", 1)), &users, dbx.OrderBy("id"), dbx.Limit(10))
+   err := db.List("user", dbx.Where(dbx.Op("id", ">", 1)), &users, dbx.OrderByDesc("id"), dbx.Limit(10))
    err := db.Find("user", dbx.Where(dbx.Op("id", ">", 1)), &users, dbx.OrderByDesc("id"), dbx.Limit(10))
    err := db.Select("user", dbx.Cols("id","name"), dbx.Where(dbx.Eq("id", 1)), &users)
    err := db.RunSQL("user", "select id,name from user", &users)
    
+   // iterate
    c, err := db.Iter("user", dbx.Where(dbx.Op("id", ">=", 1)), &user)
    if err == nil {
        for u := range c {
@@ -44,8 +48,30 @@
             fmt.Printf("%v\n", user)
        }
    }
+   
+   if err := db.Iterate("user", dbx.Where(dbx.Op("id", ">=", 1)), &user, func(idx int, bean interface{}){
+       fmt.Printf("%v\n", bean.(*User))
+   })
+   
+   // inner join
+   type Detail struct {
+       Id int
+       Detail string
+   }
+   type UserDetail struct {
+       User   `xorm:"extends"`
+       Detail `xorm:"extends"`
+   }
+   var userDetails []UserDetail
+   
+   if err := db.InnerJoin("user", "detail", "user.id=detail.id", dbx.Where(dbx.Op("user.id", ">", 1)), &userDetails, dbx.Limit(10)); err != nil {
+      // xxx
+   }
+   if _, err := db.InnerJoinStmt("user", "detail", "user.id=detail.id", dbx.Where(dbx.Op("user.id", ">", 1)), dbx.Limit(10)).Exec(&userDetails); err != nil {
+      // xxx
+   }
    ```
-
+   
  - Insert/Update/Delete
    ```go
    user := User{
@@ -101,6 +127,7 @@
  - Options
    ```go
    // sorting
+   dbx.OrderBy("id", "name")  // equals to
    dbx.OrderByDesc("id", "name")
    dbx.OrderByAsc("id", "name")
    
@@ -131,7 +158,7 @@
       arg_user_id = "user_id"
    )
    
-   func IncUserBalance(userId int, balance int) error {
+   func IncUserBalance(db *dbx.DBI, userId int, balance int) error {
      firstStep := &dbx.NextStep(
         tx_find_user,
         db.QueryStmt("user", dbx.Where(dbx.Eq("id", userId))),
@@ -157,7 +184,7 @@
 	  user := step.Val().(*User)
       return &dbx.NextStep(
            tx_find_balance,
-           db.QueryStmt("balance", dbx.Where(dbx.Eq("user_id", user.Id))),
+           step.DB().QueryStmt("balance", dbx.Where(dbx.Eq("user_id", user.Id))),
            &Balance{},
            dbx.TxCopyArgs(step),
       ), nil
@@ -170,7 +197,7 @@
           // insert a new one
           return &dbx.NextStep(
              tx_inc_balance,
-             db.InsertStmt("balance"),
+             step.DB().InsertStmt("balance"),
              &Balance{UserId: userId, Balance: incBalance},
           ), nil
       }
@@ -180,7 +207,7 @@
       balance.Balance += incBalance
       return &dbx.NextStep(
           tx_inc_balance,
-          db.UpdateStmt("balance", dbx.Where(dbx.Eq("user_id", userId)), dbx.Cols("balance)),
+          step.DB().UpdateStmt("balance", dbx.Where(dbx.Eq("user_id", userId)), dbx.Cols("balance)),
           balance,
       ), nil
    }

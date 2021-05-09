@@ -43,6 +43,7 @@ type (
 
 	TxStepRes struct {
 		session *Session
+		db      *DBI
 		step     StepKey
 		bean     interface{}
 		res      StmtResult

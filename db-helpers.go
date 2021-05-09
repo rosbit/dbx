@@ -94,6 +94,8 @@ func copy_i(vals ...interface{}) []interface{} {
 	}
 }
 
+var OrderBy = OrderByDesc
+
 func OrderByDesc(field ...string) O {
 	return func(opts *Options) {
 		opts.bys = append(opts.bys, &descOrderBy{field})

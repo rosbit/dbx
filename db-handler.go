@@ -138,14 +138,28 @@ func (db *DBI) Get(tblName string, conds []Cond, res interface{}) (bool, error) 
 	return res.(bool), err
 }
 
-func (db *DBI) Find(tblName string, conds []Cond, res interface{}, options ...O) error {
+func (db *DBI) GetOne(tblName string, conds []Cond, res interface{}) (bool, error) {
+	return db.Get(tblName, conds, res)
+}
+
+func (db *DBI) List(tblName string, conds []Cond, res interface{}, options ...O) error {
 	stmt := db.ListStmt(tblName, conds, options...)
 	_, err := stmt.Exec(res)
 	return err
 }
 
-func (db *DBI) Select(tblName string, fields []string, conds []Cond, res interface{}) error {
-	stmt := db.SelectStmt(tblName, fields, conds)
+func (db *DBI) Find(tblName string, conds []Cond, res interface{}, options ...O) error {
+	return db.List(tblName, conds, res, options...)
+}
+
+func (db *DBI) InnerJoin(tblName string, joinedTblName string, joinCond string, conds []Cond, res interface{}, options ...O) error {
+	stmt := db.InnerJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
+	_, err := stmt.Exec(res)
+	return err
+}
+
+func (db *DBI) Select(tblName string, fields []string, conds []Cond, res interface{}, options ...O) error {
+	stmt := db.SelectStmt(tblName, fields, conds, options...)
 	_, err := stmt.Exec(res)
 	return err
 }
@@ -171,13 +185,13 @@ func (db *DBI) RunSQL(tblName string, sql string, res interface{}) error {
 	return err
 }
 
-func (db *DBI) Iter(tblName string, conds []Cond, bean interface{}) (<-chan interface{}) {
-	stmt := db.QueryStmt(tblName, conds)
+func (db *DBI) Iter(tblName string, conds []Cond, bean interface{}, options ...O) (<-chan interface{}) {
+	stmt := db.QueryStmt(tblName, conds, options...)
 	return stmt.Iter(bean)
 }
 
-func (db *DBI) Iterate(tblName string, conds []Cond, bean interface{}, it FnIterate) error {
-	stmt := db.QueryStmt(tblName, conds)
+func (db *DBI) Iterate(tblName string, conds []Cond, bean interface{}, it FnIterate, options ...O) error {
+	stmt := db.QueryStmt(tblName, conds, options...)
 	return stmt.Iterate(bean, it)
 }
 
@@ -191,14 +205,23 @@ func Get(tblName string, conds []Cond, res interface{}) (bool, error) {
 	return db.Get(tblName, conds, res)
 }
 
-func Find(tblName string, conds []Cond, res interface{}, options ...O) error {
+var GetOne = Get
+
+func List(tblName string, conds []Cond, res interface{}, options ...O) error {
 	db := getDefaultConnection()
-	return db.Find(tblName, conds, res, options...)
+	return db.List(tblName, conds, res, options...)
 }
 
-func Select(tblName string, fields []string, conds []Cond, res interface{}) error {
+var Find = List
+
+func InnerJoin(tblName string, joinedTblName string, joinCond string, conds []Cond, res interface{}, options ...O) error {
 	db := getDefaultConnection()
-	return db.Select(tblName, fields, conds, res)
+	return db.InnerJoin(tblName, joinedTblName, joinCond, conds, res, options...)
+}
+
+func Select(tblName string, fields []string, conds []Cond, res interface{}, options ...O) error {
+	db := getDefaultConnection()
+	return db.Select(tblName, fields, conds, res, options...)
 }
 
 func Insert(tblName string, vals interface{}) error {
@@ -221,14 +244,14 @@ func RunSQL(tblName string, sql string, res interface{}) error {
 	return db.RunSQL(tblName, sql, res)
 }
 
-func Iter(tblName string, conds []Cond, bean interface{}) (<-chan interface{}) {
+func Iter(tblName string, conds []Cond, bean interface{}, options ...O) (<-chan interface{}) {
 	db := getDefaultConnection()
-	return db.Iter(tblName, conds, bean)
+	return db.Iter(tblName, conds, bean, options...)
 }
 
-func Iterate(tblName string, conds []Cond, bean interface{}, it FnIterate) error {
+func Iterate(tblName string, conds []Cond, bean interface{}, it FnIterate, options ...O) error {
 	db := getDefaultConnection()
-	return db.Iterate(tblName, conds, bean, it)
+	return db.Iterate(tblName, conds, bean, it, options...)
 }
 
 // some statistic func
