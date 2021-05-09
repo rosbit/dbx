@@ -1,6 +1,6 @@
 package dbx
 
-func (db *DBI) NewQueryStmt(tblName string, conds []Cond, options ...O) *queryStmt {
+func (db *DBI) QueryStmt(tblName string, conds []Cond, options ...O) *queryStmt {
 	opts := &Options{}
 	for _, opt := range options {
 		opt(opts)
@@ -17,35 +17,35 @@ func (db *DBI) NewQueryStmt(tblName string, conds []Cond, options ...O) *querySt
 	}
 }
 
-func (db *DBI) NewListStmt(tblName string, conds []Cond, options ...O) *listStmt {
+func (db *DBI) ListStmt(tblName string, conds []Cond, options ...O) *listStmt {
 	return &listStmt{
-		queryStmt: db.NewQueryStmt(tblName, conds, options...),
+		queryStmt: db.QueryStmt(tblName, conds, options...),
 	}
 }
 
-func (db *DBI) NewSelectStmt(tblName string, fields []string, conds []Cond, options ...O) *selectStmt {
+func (db *DBI) SelectStmt(tblName string, fields []string, conds []Cond, options ...O) *selectStmt {
 	return &selectStmt{
-		listStmt: db.NewListStmt(tblName, conds, options...),
+		listStmt: db.ListStmt(tblName, conds, options...),
 		fields: fields,
 	}
 }
 
-func (db *DBI) NewSqlStmt(tblName string, sql string, options ...O) *sqlStmt {
+func (db *DBI) SqlStmt(tblName string, sql string, options ...O) *sqlStmt {
 	return &sqlStmt{
-		listStmt: db.NewListStmt(tblName, nil, options...),
+		listStmt: db.ListStmt(tblName, nil, options...),
 		sql: sql,
 	}
 }
 
-func (db *DBI) NewInnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *innerJoinStmt {
+func (db *DBI) InnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *innerJoinStmt {
 	return &innerJoinStmt{
-		listStmt: db.NewListStmt(tblName, conds, options...),
+		listStmt: db.ListStmt(tblName, conds, options...),
 		joinedTbl: joinedTblName,
 		joinCond: joinCond,
 	}
 }
 
-func (db *DBI) NewInsertStmt(tblName string) *insertStmt {
+func (db *DBI) InsertStmt(tblName string) *insertStmt {
 	return &insertStmt{
 		execStmt: &execStmt{
 			engine: db,
@@ -54,7 +54,7 @@ func (db *DBI) NewInsertStmt(tblName string) *insertStmt {
 	}
 }
 
-func (db *DBI) NewUpdateStmt(tblName string, conds []Cond, cols []string) *updateStmt {
+func (db *DBI) UpdateStmt(tblName string, conds []Cond, cols []string) *updateStmt {
 	return &updateStmt{
 		execStmt: &execStmt{
 			engine: db,
@@ -65,7 +65,7 @@ func (db *DBI) NewUpdateStmt(tblName string, conds []Cond, cols []string) *updat
 	}
 }
 
-func (db *DBI) NewDeleteStmt(tblName string, conds []Cond) *deleteStmt {
+func (db *DBI) DeleteStmt(tblName string, conds []Cond) *deleteStmt {
 	return &deleteStmt{
 		execStmt: &execStmt{
 			engine: db,
@@ -75,53 +75,53 @@ func (db *DBI) NewDeleteStmt(tblName string, conds []Cond) *deleteStmt {
 	}
 }
 
-func NewQueryStmt(tblName string, conds []Cond, options ...O) *queryStmt {
+func QueryStmt(tblName string, conds []Cond, options ...O) *queryStmt {
 	db := getDefaultConnection()
-	return db.NewQueryStmt(tblName, conds, options...)
+	return db.QueryStmt(tblName, conds, options...)
 }
 
-func NewListStmt(tblName string, conds []Cond, options ...O) *listStmt {
+func ListStmt(tblName string, conds []Cond, options ...O) *listStmt {
 	db := getDefaultConnection()
-	return db.NewListStmt(tblName, conds, options...)
+	return db.ListStmt(tblName, conds, options...)
 }
 
-func NewSelectStmt(tblName string, fields []string, conds []Cond, options ...O) *selectStmt {
+func SelectStmt(tblName string, fields []string, conds []Cond, options ...O) *selectStmt {
 	db := getDefaultConnection()
-	return db.NewSelectStmt(tblName, fields, conds, options...)
+	return db.SelectStmt(tblName, fields, conds, options...)
 }
 
-func NewSqlStmt(tblName string, sql string, options ...O) *sqlStmt {
+func SqlStmt(tblName string, sql string, options ...O) *sqlStmt {
 	db := getDefaultConnection()
-	return db.NewSqlStmt(tblName, sql, options...)
+	return db.SqlStmt(tblName, sql, options...)
 }
 
-func NewInnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *innerJoinStmt {
+func InnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *innerJoinStmt {
 	db := getDefaultConnection()
-	return db.NewInnerJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
+	return db.InnerJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
 }
 
-func NewInsertStmt(tblName string) *insertStmt {
+func InsertStmt(tblName string) *insertStmt {
 	db := getDefaultConnection()
-	return db.NewInsertStmt(tblName)
+	return db.InsertStmt(tblName)
 }
 
-func NewUpdateStmt(tblName string, conds []Cond, cols []string) *updateStmt {
+func UpdateStmt(tblName string, conds []Cond, cols []string) *updateStmt {
 	db := getDefaultConnection()
-	return db.NewUpdateStmt(tblName, conds, cols)
+	return db.UpdateStmt(tblName, conds, cols)
 }
 
-func NewDeleteStmt(tblName string, conds []Cond) *deleteStmt {
+func DeleteStmt(tblName string, conds []Cond) *deleteStmt {
 	db := getDefaultConnection()
-	return db.NewDeleteStmt(tblName, conds)
+	return db.DeleteStmt(tblName, conds)
 }
 
-func NewVoidStmt() *voidStmt {
+func VoidStmt() *voidStmt {
 	return &voidStmt{}
 }
 
 // some re-usable handler
 func (db *DBI) GetBy(tblName, colName string, colVal interface{}, res interface{}) (bool, error) {
-	stmt := db.NewQueryStmt(tblName, []Cond{Eq(colName, colVal)})
+	stmt := db.QueryStmt(tblName, []Cond{Eq(colName, colVal)})
 	res, err := stmt.Exec(res)
 	if err != nil {
 		return false, err
@@ -130,7 +130,7 @@ func (db *DBI) GetBy(tblName, colName string, colVal interface{}, res interface{
 }
 
 func (db *DBI) Get(tblName string, conds []Cond, res interface{}) (bool, error) {
-	stmt := db.NewQueryStmt(tblName, conds)
+	stmt := db.QueryStmt(tblName, conds)
 	res, err := stmt.Exec(res)
 	if err != nil {
 		return false, err
@@ -139,45 +139,45 @@ func (db *DBI) Get(tblName string, conds []Cond, res interface{}) (bool, error) 
 }
 
 func (db *DBI) Find(tblName string, conds []Cond, res interface{}, options ...O) error {
-	stmt := db.NewListStmt(tblName, conds, options...)
+	stmt := db.ListStmt(tblName, conds, options...)
 	_, err := stmt.Exec(res)
 	return err
 }
 
 func (db *DBI) Select(tblName string, fields []string, conds []Cond, res interface{}) error {
-	stmt := db.NewSelectStmt(tblName, fields, conds)
+	stmt := db.SelectStmt(tblName, fields, conds)
 	_, err := stmt.Exec(res)
 	return err
 }
 
 func (db *DBI) Insert(tblName string, vals interface{}) error {
-	_, err := db.NewInsertStmt(tblName).Exec(vals)
+	_, err := db.InsertStmt(tblName).Exec(vals)
 	return err
 }
 
 func (db *DBI) Update(tblName string, conds []Cond, cols []string, vals interface{}) error {
-	_, err := db.NewUpdateStmt(tblName, conds, cols).Exec(vals)
+	_, err := db.UpdateStmt(tblName, conds, cols).Exec(vals)
 	return err
 }
 
 func (db *DBI) Delete(tblName string, conds []Cond, vals interface{}) error {
-	_, err := db.NewDeleteStmt(tblName, conds).Exec(vals)
+	_, err := db.DeleteStmt(tblName, conds).Exec(vals)
 	return err
 }
 
 func (db *DBI) RunSQL(tblName string, sql string, res interface{}) error {
-	stmt := db.NewSqlStmt(tblName, sql)
+	stmt := db.SqlStmt(tblName, sql)
 	_, err := stmt.Exec(res)
 	return err
 }
 
 func (db *DBI) Iter(tblName string, conds []Cond, bean interface{}) (<-chan interface{}) {
-	stmt := db.NewQueryStmt(tblName, conds)
+	stmt := db.QueryStmt(tblName, conds)
 	return stmt.Iter(bean)
 }
 
 func (db *DBI) Iterate(tblName string, conds []Cond, bean interface{}, it FnIterate) error {
-	stmt := db.NewQueryStmt(tblName, conds)
+	stmt := db.QueryStmt(tblName, conds)
 	return stmt.Iterate(bean, it)
 }
 

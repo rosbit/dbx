@@ -7,24 +7,72 @@ import (
 	"fmt"
 )
 
+var (
+	// special tx step handlers
+	CommitAfterExecStmt TxStepHandler = nil
+)
+
 func (f1 TxStepHandler) sameHandler(f2 TxStepHandler) bool {
 	return reflect.ValueOf(f1).Pointer() == reflect.ValueOf(f2).Pointer()
 }
 
-var (
-	// special tx step handlers
-	CommitBeforeExecStmt   = func(*TxPrevStepRes)(*TxNextStep, error) { return nil, nil }
-	RollbackBeforeExecStmt = func(*TxPrevStepRes)(*TxNextStep, error) { return nil, nil }
-	CommitAfterExecStmt TxStepHandler = nil
-)
+// --- args options ----
 
-func RunTx(firstStep *TxNextStep, stepHandlers StepHandlers) (err error) {
+func TxArg(name ArgKey, val interface{}) TxA {
+	return func(args *map[ArgKey]interface{}) {
+		if len(name) > 0 {
+			(*args)[name] = val
+		}
+	}
+}
+
+func TxCopyArgs(step *TxStepRes) TxA {
+	return func(args *map[ArgKey]interface{}) {
+		if len(*args) == 0 {
+			args = &(step.args)
+			return
+		}
+
+		for k, v := range step.args {
+			(*args)[k] = v
+		}
+	}
+}
+
+// --- create next step with optional args ---
+func NextStep(name StepKey, stmt Stmt, bean interface{}, txArgs ...TxA) *TxStep {
+	args := make(map[ArgKey]interface{})
+	for _, txArg := range txArgs {
+		txArg(&args)
+	}
+
+	return &TxStep{name, stmt, bean, args}
+}
+
+// --- previous step ---
+func (step *TxStepRes) Has() bool {
+	return step.res.(bool)
+}
+
+func (step *TxStepRes) Val() interface{} {
+	return step.bean
+}
+
+func (step *TxStepRes) Arg(key ArgKey) (arg interface{}) {
+	if len(step.args) == 0 {
+		return nil
+	}
+	arg, _ = step.args[key]
+	return
+}
+
+// run a transation step by step
+func RunTx(firstStep *TxStep, stepHandlers StepHandlers) (err error) {
 	db := getDefaultConnection()
 	return db.RunTx(firstStep, stepHandlers)
 }
 
-// run a transation step by step
-func (db *DBI) RunTx(firstStep *TxNextStep, stepHandlers StepHandlers) (err error) {
+func (db *DBI) RunTx(firstStep *TxStep, stepHandlers StepHandlers) (err error) {
 	if firstStep == nil || len(stepHandlers) == 0 {
 		return fmt.Errorf("bad request for calling RunTx")
 	}
@@ -48,37 +96,28 @@ func (db *DBI) RunTx(firstStep *TxNextStep, stepHandlers StepHandlers) (err erro
 
 	nextStep := firstStep
 	for {
-		if nextStep == nil || nextStep.Stmt == nil {
+		if nextStep == nil || nextStep.stmt == nil {
 			session.Commit()
 			return nil
 		}
 
-		stmt, bean, step := nextStep.Stmt, nextStep.Bean, nextStep.Step
+		stmt, bean, step, args := nextStep.stmt, nextStep.bean, nextStep.step, nextStep.args
 		handleTxStep, ok := stepHandlers[step]
 		if !ok {
-			return fmt.Errorf("no tx handler found for step #%d", step)
-		}
-		if handleTxStep != nil {
-			if handleTxStep.sameHandler(CommitBeforeExecStmt) {
-				session.Commit()
-				return nil
-			} else if handleTxStep.sameHandler(RollbackBeforeExecStmt) {
-				return nil
-			}
+			return fmt.Errorf("no tx handler found for step %s", step)
 		}
 
 		res, err := stmt.Exec(bean, session)
 		if err != nil {
 			return err
 		}
+
 		if handleTxStep.sameHandler(CommitAfterExecStmt) {
 			session.Commit()
 			return nil
 		}
 
-		if nextStep, err = handleTxStep(
-			&TxPrevStepRes{Session:session, Step:step, Bean:bean, Res:res, ExArgs:nextStep.ExArgs},
-		); err != nil {
+		if nextStep, err = handleTxStep(&TxStepRes{session, step, bean, res, args}); err != nil {
 			return err
 		}
 	}

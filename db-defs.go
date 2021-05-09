@@ -38,21 +38,27 @@ type (
 
 // --- transaction ---
 type (
-	TxPrevStepRes struct {
-		Session *Session
-		Step     int
-		Bean     interface{}
-		Res      StmtResult
-		ExArgs []interface{}
+	StepKey = string
+	ArgKey  = string
+
+	TxStepRes struct {
+		session *Session
+		step     StepKey
+		bean     interface{}
+		res      StmtResult
+		args     map[ArgKey]interface{}
 	}
 
-	TxNextStep struct {
-		Step     int
-		Stmt
-		Bean     interface{}
-		ExArgs []interface{}
+	TxStep struct {
+		step  StepKey
+		stmt  Stmt
+		bean  interface{}
+		args  map[ArgKey]interface{}
 	}
 
-	TxStepHandler func(*TxPrevStepRes)(*TxNextStep, error)
-	StepHandlers map[int]TxStepHandler
+	TxStepHandler func(*TxStepRes)(*TxStep, error)
+	StepHandlers map[StepKey]TxStepHandler
+
+	TxA func(args *map[ArgKey]interface{})
 )
+
