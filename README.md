@@ -153,7 +153,7 @@
    )
    
    func IncUserBalance(db *dbx.DBI, userId int, balance int) error {
-     firstStep := &dbx.NextStep(
+     firstStep := dbx.NextStep(
         user_found,
         db.QueryStmt("user", dbx.Where(dbx.Eq("id", userId))),
         &User{},
@@ -172,7 +172,7 @@
       }
      
       user := step.Val().(*User)
-      return &dbx.NextStep(
+      return dbx.NextStep(
            balance_found,
            step.DB().QueryStmt("balance", dbx.Where(dbx.Eq("user_id", user.Id))),
            &Balance{},
@@ -185,7 +185,7 @@
       userId := step.Arg(arg_user_id).(int)
       if !step.Has() {
           // insert a new one
-          return &dbx.NextStep(
+          return dbx.NextStep(
              dbx.CommitAfterExecStmt,
              step.DB().InsertStmt("balance"),
              &Balance{UserId: userId, Balance: incBalance},
@@ -195,7 +195,7 @@
       // increment balance, update it
       balance := step.Val().(*Balance)
       balance.Balance += incBalance
-      return &dbx.NextStep(
+      return dbx.NextStep(
           dbx.CommitAfterExecStmt,
           step.DB().UpdateStmt("balance", dbx.Where(dbx.Eq("user_id", userId)), dbx.Cols("balance")),
           balance,
