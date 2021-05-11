@@ -29,7 +29,7 @@ func TxArg(name ArgKey, val interface{}) TxA {
 func TxCopyArgs(step *TxStepRes) TxA {
 	return func(args *map[ArgKey]interface{}) {
 		if len(*args) == 0 {
-			args = &(step.args)
+			*args = step.args
 			return
 		}
 
