@@ -84,14 +84,12 @@ func Host(host string, port ...int) mysqlOption {
 		params.host = fmt.Sprintf("%s:%d", h, p)
 	}
 }
-func User(user string) mysqlOption {
+func User(user string, passwd ...string) mysqlOption {
 	return func(params *mysqldParams) {
 		params.user = user
-	}
-}
-func Passwd(passwd string) mysqlOption {
-	return func(params *mysqldParams) {
-		params.passwd = passwd
+		if len(passwd) > 0 {
+			params.passwd = passwd[0]
+		}
 	}
 }
 func DBName(db string) mysqlOption {
@@ -104,4 +102,10 @@ func Attr(attr string, val interface{}) mysqlOption {
 		params.attrs[attr] = val
 	}
 }
-
+func Attrs(attrs map[string]interface{}) mysqlOption {
+	return func(params *mysqldParams) {
+		for attr, val := range attrs {
+			params.attrs[attr] = val
+		}
+	}
+}

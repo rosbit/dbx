@@ -11,8 +11,8 @@
  - Create db instance
    ```go
    dataSourceName := dbx.GenerateMysqlDSN(dbx.DBName("test"), dbx.Attr("charset", "utf8mb4"))
-   dataSourceName := dbx.GenerateMysqlDSN(dbx.Host("127.0.0.1"))
-   dataSourceName := dbx.GenerateMysqlDSN(dbx.Host("127.0.0.1", 3306))
+   dataSourceName := dbx.GenerateMysqlDSN(dbx.Host("127.0.0.1"), dbx.User("root"))
+   dataSourceName := dbx.GenerateMysqlDSN(dbx.Host("127.0.0.1", 3306), dbx.User("root", ""))
    dataSourceName := dbx.GenerateMysqlDSN(dbx.DomainSocket("/tmp/mysql.sock"))
    
    err := dbx.CreateMysqlConnection(dataSourceName, debug)
