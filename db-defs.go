@@ -38,27 +38,24 @@ type (
 
 // --- transaction ---
 type (
-	StepKey = string
 	ArgKey  = string
+
+	TxStepHandler func(*TxStepRes)(*TxStep, error)
 
 	TxStepRes struct {
 		session *Session
 		db      *DBI
-		step     StepKey
 		bean     interface{}
 		res      StmtResult
 		args     map[ArgKey]interface{}
 	}
 
 	TxStep struct {
-		step  StepKey
+		step  TxStepHandler
 		stmt  Stmt
 		bean  interface{}
 		args  map[ArgKey]interface{}
 	}
-
-	TxStepHandler func(*TxStepRes)(*TxStep, error)
-	StepHandlers map[StepKey]TxStepHandler
 
 	TxA func(args *map[ArgKey]interface{})
 )

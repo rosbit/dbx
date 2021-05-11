@@ -146,21 +146,15 @@
       Balance int
    }
    
-   // transaction steps
    const (
-      // step
-      tx_find_user    = "find_user"
-      tx_find_balance = "find_balance"
-      tx_inc_balance  = "inc_banlance"
-     
-      // args
+      // args name
       arg_balance = "balance"
       arg_user_id = "user_id"
    )
    
    func IncUserBalance(db *dbx.DBI, userId int, balance int) error {
      firstStep := &dbx.NextStep(
-        tx_find_user,
+        user_found,
         db.QueryStmt("user", dbx.Where(dbx.Eq("id", userId))),
         &User{},
         dbx.TxArg(arg_balance, balance),
@@ -168,11 +162,7 @@
      )
      
      // call RunTx to run a transaction. Commit if no error ocurrs, otherwise it will rollback. 
-     return db.RunTx(firstStep, map[dbx.SetpKey]dbx.TxStepHandler {
-        tx_find_user: user_found,
-        tx_find_balance: balance_found,
-        tx_inc_balance: dbx.CommitAfterExecStmt,
-     })
+     return db.RunTx(firstStep)
    }
    
    // --- step handler ---
@@ -181,9 +171,9 @@
          return nil, fmt.Error("user not found")
       }
      
-	  user := step.Val().(*User)
+      user := step.Val().(*User)
       return &dbx.NextStep(
-           tx_find_balance,
+           balance_found,
            step.DB().QueryStmt("balance", dbx.Where(dbx.Eq("user_id", user.Id))),
            &Balance{},
            dbx.TxCopyArgs(step),
@@ -196,7 +186,7 @@
       if !step.Has() {
           // insert a new one
           return &dbx.NextStep(
-             tx_inc_balance,
+             dbx.CommitAfterExecStmt,
              step.DB().InsertStmt("balance"),
              &Balance{UserId: userId, Balance: incBalance},
           ), nil
@@ -206,8 +196,8 @@
       balance := step.Val().(*Balance)
       balance.Balance += incBalance
       return &dbx.NextStep(
-          tx_inc_balance,
-          step.DB().UpdateStmt("balance", dbx.Where(dbx.Eq("user_id", userId)), dbx.Cols("balance)),
+          dbx.CommitAfterExecStmt,
+          step.DB().UpdateStmt("balance", dbx.Where(dbx.Eq("user_id", userId)), dbx.Cols("balance")),
           balance,
       ), nil
    }
