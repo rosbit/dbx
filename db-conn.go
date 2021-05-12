@@ -38,3 +38,19 @@ func CreateDriverDBInstance(driverName, dsn string, debug bool) (db *DBI, err er
 	}
 	return
 }
+
+func Close() error {
+	if DB == nil {
+		return nil
+	}
+
+	defer func() {
+		DB = nil
+	}()
+
+	return DB.Close()
+}
+
+func (db *DBI) Close() error {
+	return db.Engine.Close()
+}
