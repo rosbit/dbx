@@ -2,7 +2,6 @@ package dbx
 
 import (
 	"reflect"
-	"fmt"
 )
 
 func Where(eq ...Cond) []Cond {
@@ -13,44 +12,33 @@ func Cols(field ...string) []string {
 	return field
 }
 
-func Eq(fieldName string, val ...interface{}) Cond {
-	return &andCond{fieldName, copy_i(val)}
-}
-
-func And(cond ...string) Cond {
-	return &andxCond{cond}
+func Eq(fieldName string, val interface{}) AndElem {
+	return &andCond{fieldName, val}
 }
 
 // op: "=", "!=", "<>", ">", ">=", "<", "<=", "like"
-func Op(fieldName string, op string, val ...interface{}) Cond {
-	return &opCond{fieldName, op, copy_i(val)}
+func Op(fieldName string, op string, val interface{}) AndElem {
+	return &opCond{fieldName, op, val}
 }
 
-// f1, v1, f2, v2, ... => (f1=v1 OR f2=v2 OR ...)
-func OrEq(fieldName string, val ...interface{}) Cond {
-	fields := []string{fieldName}
-	vals := []interface{}{}
-
-	for i, v := range val {
-		if i % 2 == 0 {
-			vals = append(vals, v)
-		} else {
-			fields = append(fields, fmt.Sprintf("%s", v))
-		}
-	}
-	return &orCond{fields, vals}
+func And(cond ...AndElem) AndElem {
+	return &andxCond{cond}
 }
 
-func Or(cond ...string) Cond {
+func Or(cond ...AndElem) AndElem {
 	return &orxCond{cond}
 }
 
-func In(fieldName string, val ...interface{}) Cond {
-	return &inCond{fieldName, copy_i(val)}
+func Not(cond ...AndElem) AndElem {
+	return &notCond{cond}
 }
 
-func NotIn(fieldName string, val ...interface{}) Cond {
-	return &notInCond{fieldName, copy_i(val)}
+func In(fieldName string, val ...interface{}) AndElem {
+	return &inCond{fieldName, copy_i(val...)}
+}
+
+func NotIn(fieldName string, val ...interface{}) AndElem {
+	return &notInCond{fieldName, copy_i(val...)}
 }
 
 func Sql(sql string) Cond {

@@ -20,6 +20,11 @@ type (
 		makeCond(sess *Session) *Session
 	}
 
+	AndElem interface {
+		Cond
+		mkAndElem() (q string, v []interface{})
+	}
+
 	by interface {
 		makeBy(sess *Session) *Session
 	}

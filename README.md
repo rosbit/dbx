@@ -98,13 +98,21 @@
    dbx.Op("b", ">", 2))  // -> where
    
    dbx.Where(dbx.Eq("a", 1), dbx.Op("b", ">", 2))
-   dbx.Where(dbx.And("a=1", "b>2"))
+   dbx.Where(dbx.And(dbx.Eq("a", 1), dbx.Op("b", ">", 2)))
    
    // Or
-   dbx.Or("a=1", "b<2", "c>=3") // -> where
-   dbx.Where(dbx.Or("a=1", "b<2", "c>=3"))
+   dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3)) // -> where
+   dbx.Where(dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3)))
    
-   dbx.Where(dbx.OrEq("a", 1, "b", 2, "c", 3)) // -> "a=1" "b=2 "c=3"
+   // NOT
+   //  NOT AND
+   dbx.Not(dbx.Eq("a", 1), dbx.Op("b", ">", 2))
+   dbx.Not(dbx.And(dbx.Eq("a", 1), dbx.Op("b", ">", 2))) // -> where
+   dbx.Where(dbx.Not(dbx.Eq("a", 1), dbx.Op("b", ">", 2)))
+   dbx.Where(dbx.Not(dbx.And(dbx.Eq("a", 1), dbx.Op("b", ">", 2))))
+   // NOT OR
+   dbx.Not(dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3))) // -> where
+   dbx.Where(dbx.Not(dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3))))
    
    // IN
    dbx.In("id", 1, 3, 5)
@@ -115,15 +123,19 @@
    
    // not IN
    dbx.NotIn("id", 1, 3, 5)
-   dbx.NotIn("id", []int{1, 3, 5}) // -> where
+   dbx.Not(dbx.In("id", []int{1, 3, 5}))
+   dbx.NotIn("id", 1, 3, 5)
+   dbx.Not(dbx.In("id", []int{1, 3, 5})) // -> where
    
    dbx.Where(dbx.NotIn("id", 1, 3, 5))
-   dbx.Where(dbx.NotIn("id", []int{1, 3, 5}))
+   dbx.Where(dbx.Not(dbx.In("id", []int{1, 3, 5})))
+   dbx.Where(dbx.NotIn("id", 1, 3, 5))
+   dbx.Where(dbx.Not(dbx.In("id", []int{1, 3, 5})))
    
    // SQL
    dbx.Where(dbx.Sql("select id,name from user"))
    ```
-
+   
  - Options
    ```go
    // sorting
