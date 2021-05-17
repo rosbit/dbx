@@ -101,17 +101,41 @@
    dbx.Where(dbx.And(dbx.Eq("a", 1), dbx.Op("b", ">", 2)))
    
    // Or
-   dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3)) // -> where
-   dbx.Where(dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3)))
+   dbx.Or(
+      dbx.Eq("a", 1),
+      dbx.Op("b", "<", 2),
+      dbx.Op("c", ">=", 3),
+   ) // -> where
+   dbx.Where(
+      dbx.Or(
+         dbx.Eq("a", 1),
+         dbx.Op("b", "<", 2),
+         dbx.Op("c", ">=", 3),
+      ),
+   )
    
    // NOT
    //  NOT AND
-   dbx.Not(dbx.Eq("a", 1), dbx.Op("b", ">", 2))
-   dbx.Not(dbx.And(dbx.Eq("a", 1), dbx.Op("b", ">", 2))) // -> where
+   dbx.Not(
+      dbx.Eq("a", 1),
+      dbx.Op("b", ">", 2),
+   )
+   dbx.Not(
+      dbx.And(
+        dbx.Eq("a", 1),
+        dbx.Op("b", ">", 2),
+      ),
+   ) // -> where
    dbx.Where(dbx.Not(dbx.Eq("a", 1), dbx.Op("b", ">", 2)))
    dbx.Where(dbx.Not(dbx.And(dbx.Eq("a", 1), dbx.Op("b", ">", 2))))
    // NOT OR
-   dbx.Not(dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3))) // -> where
+   dbx.Not(
+      dbx.Or(
+        dbx.Eq("a", 1),
+        dbx.Op("b", "<", 2),
+        dbx.Op("c", ">=", 3),
+      ),
+   ) // -> where
    dbx.Where(dbx.Not(dbx.Or(dbx.Eq("a", 1), dbx.Op("b", "<", 2), dbx.Op("c", ">=", 3))))
    
    // IN
