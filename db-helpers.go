@@ -13,7 +13,7 @@ func Cols(field ...string) []string {
 }
 
 func Eq(fieldName string, val interface{}) AndElem {
-	return &andCond{fieldName, val}
+	return &eqCond{fieldName, val}
 }
 
 // op: "=", "!=", "<>", ">", ">=", "<", "<=", "like"
@@ -96,7 +96,7 @@ func OrderByAsc(field ...string) O {
 	}
 }
 
-func GroupBy(field string) O {
+func GroupBy(field ...string) O {
 	return func(opts *Options) {
 		opts.bys = append(opts.bys, &groupBy{field})
 	}

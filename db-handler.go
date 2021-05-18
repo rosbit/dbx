@@ -120,26 +120,26 @@ func VoidStmt() *voidStmt {
 }
 
 // some re-usable handler
-func (db *DBI) GetBy(tblName, colName string, colVal interface{}, res interface{}) (bool, error) {
-	stmt := db.QueryStmt(tblName, []Cond{Eq(colName, colVal)})
-	res, err := stmt.Exec(res)
+func (db *DBI) GetBy(tblName, colName string, colVal interface{}, res interface{}, options ...O) (bool, error) {
+	stmt := db.QueryStmt(tblName, []Cond{Eq(colName, colVal)}, options...)
+	r, err := stmt.Exec(res)
 	if err != nil {
 		return false, err
 	}
-	return res.(bool), err
+	return r.(bool), nil
 }
 
-func (db *DBI) Get(tblName string, conds []Cond, res interface{}) (bool, error) {
-	stmt := db.QueryStmt(tblName, conds)
-	res, err := stmt.Exec(res)
+func (db *DBI) Get(tblName string, conds []Cond, res interface{}, options ...O) (bool, error) {
+	stmt := db.QueryStmt(tblName, conds, options...)
+	r, err := stmt.Exec(res)
 	if err != nil {
 		return false, err
 	}
-	return res.(bool), err
+	return r.(bool), nil
 }
 
-func (db *DBI) GetOne(tblName string, conds []Cond, res interface{}) (bool, error) {
-	return db.Get(tblName, conds, res)
+func (db *DBI) GetOne(tblName string, conds []Cond, res interface{}, options ...O) (bool, error) {
+	return db.Get(tblName, conds, res, options...)
 }
 
 func (db *DBI) List(tblName string, conds []Cond, res interface{}, options ...O) error {
@@ -195,14 +195,14 @@ func (db *DBI) Iterate(tblName string, conds []Cond, bean interface{}, it FnIter
 	return stmt.Iterate(bean, it)
 }
 
-func GetBy(tblName, colName string, colVal interface{}, res interface{}) (bool, error) {
+func GetBy(tblName, colName string, colVal interface{}, res interface{}, options ...O) (bool, error) {
 	db := getDefaultConnection()
-	return db.GetBy(tblName, colName, colVal, res)
+	return db.GetBy(tblName, colName, colVal, res, options...)
 }
 
-func Get(tblName string, conds []Cond, res interface{}) (bool, error) {
+func Get(tblName string, conds []Cond, res interface{}, options ...O) (bool, error) {
 	db := getDefaultConnection()
-	return db.Get(tblName, conds, res)
+	return db.Get(tblName, conds, res, options...)
 }
 
 var GetOne = Get

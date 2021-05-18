@@ -68,30 +68,19 @@ func makeInElem(field string, val []interface{}, prep string) (string, []interfa
 }
 
 // implementations of interface Cond
-type andCond struct {
+type eqCond struct {
 	field string
 	val interface{}
 }
-func (e *andCond) makeCond(sess *Session) *Session {
+func (e *eqCond) makeCond(sess *Session) *Session {
 	return makeCond(e, sess)
 }
-
-func (e *andCond) mkAndElem() (string, []interface{}) {
+func (e *eqCond) mkAndElem() (string, []interface{}) {
 	if len(e.field) == 0 {
 		return "", nil
 	}
 	backquote := getQuote(e.field)
 	return fmt.Sprintf("%s%s%s=?", backquote, e.field, backquote), []interface{}{e.val}
-}
-
-type andxCond struct {
-	conds []AndElem
-}
-func (e *andxCond) makeCond(sess *Session) *Session {
-	return makeCond(e, sess)
-}
-func (e *andxCond) mkAndElem() (string, []interface{}) {
-	return joinAndElems(e.conds, "AND")
 }
 
 type opCond struct {
@@ -111,6 +100,16 @@ func (e *opCond) mkAndElem() (string, []interface{}) {
 	}
 	backquote := getQuote(e.field)
 	return fmt.Sprintf("%s%s%s %s ?", backquote, e.field, backquote, e.op), []interface{}{e.val}
+}
+
+type andxCond struct {
+	conds []AndElem
+}
+func (e *andxCond) makeCond(sess *Session) *Session {
+	return makeCond(e, sess)
+}
+func (e *andxCond) mkAndElem() (string, []interface{}) {
+	return joinAndElems(e.conds, "AND")
 }
 
 type orxCond struct {
@@ -189,10 +188,10 @@ func (o *descOrderBy) makeBy(sess *Session) *Session {
 }
 
 type groupBy struct {
-	field string
+	field []string
 }
 func (o *groupBy) makeBy(sess *Session) *Session {
-	return sess.GroupBy(o.field)
+	return sess.GroupBy(strings.Join(o.field, ","))
 }
 
 // implementation of interface Limit

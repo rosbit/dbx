@@ -238,3 +238,14 @@
       ), nil
    }
    ```
+
+ - Pipeline
+   ```go
+   db.Stmt().Where(dbx.Eq("name", "rosbit")).Or(dbx.Eq("age", 1)).Get(&user)
+   db.Stmt().Where(dbx.Eq("name", "rosbit")).Or(dbx.Eq("age", 1)).Limit(2).List(&users)
+   for uu := range db.Stmt().Where(dbx.Eq("name", "rosbit")).Or(dbx.Eq("age", 1)).Iter(&user) {
+       u := uu.(*user)
+       // do something with u
+   }
+   db.Stmt().Where(dbx.Eq("id", user.Id)).Cols("name", "age").Update(&user)
+   ```
