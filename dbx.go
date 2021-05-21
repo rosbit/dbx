@@ -10,12 +10,12 @@ type dbxStmt struct {
 	opts []O
 }
 
-func NewStmt() *dbxStmt {
+func XStmt() *dbxStmt {
 	db := getDefaultConnection()
-	return db.Stmt()
+	return db.XStmt()
 }
 
-func (db *DBI) Stmt() *dbxStmt {
+func (db *DBI) XStmt() *dbxStmt {
 	return &dbxStmt{
 		engine: db,
 	}
@@ -104,6 +104,11 @@ func (s *dbxStmt) Limit(count int, offset ...int) *dbxStmt {
 	return s
 }
 
+func (s *dbxStmt) XSession(session *Session) *dbxStmt {
+	s.opts = append(s.opts, WithSession(session))
+	return s
+}
+
 func (s *dbxStmt) Get(res interface{}) (bool, error) {
 	return s.engine.Get(s.table, s.conds, res, s.opts...)
 }
@@ -116,15 +121,15 @@ func (s *dbxStmt) List(res interface{}) error {
 }
 
 func (s *dbxStmt) Insert(vals interface{}) error {
-	return s.engine.Insert(s.table, vals)
+	return s.engine.Insert(s.table, vals, s.opts...)
 }
 
 func (s *dbxStmt) Update(vals interface{}) error {
-	return s.engine.Update(s.table, s.conds, s.cols, vals)
+	return s.engine.Update(s.table, s.conds, s.cols, vals, s.opts...)
 }
 
 func (s *dbxStmt) Delete(vals interface{}) error {
-	return s.engine.Delete(s.table, s.conds, vals)
+	return s.engine.Delete(s.table, s.conds, vals, s.opts...)
 }
 
 func (s *dbxStmt) Iter(bean interface{}) (<-chan interface{}) {

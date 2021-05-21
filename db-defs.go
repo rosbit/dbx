@@ -13,7 +13,8 @@ type (
 	StmtResult interface {}
 
 	Stmt interface {
-		Exec(bean interface{}, session ...*Session) (StmtResult, error)
+		Exec(bean interface{}) (StmtResult, error)
+		setSession(session *Session)
 	}
 
 	Cond interface {
@@ -36,6 +37,7 @@ type (
 	Options struct {
 		bys []by
 		limit limit
+		session *Session
 	}
 
 	O func(opts *Options)

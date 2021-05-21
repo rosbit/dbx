@@ -113,7 +113,8 @@ func (db *DBI) RunTx(firstStep *TxStep) (err error) {
 	nextStep := firstStep
 	for {
 		stmt, bean, handleTxStep, args := nextStep.stmt, nextStep.bean, nextStep.step, nextStep.args
-		res, err := stmt.Exec(bean, session)
+		stmt.setSession(session)
+		res, err := stmt.Exec(bean)
 		if err != nil {
 			return err
 		}

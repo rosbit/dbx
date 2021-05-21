@@ -12,17 +12,18 @@ const (
 )
 
 type execStmt struct {
-	engine *DBI
+	engine  *DBI
+	session *Session
 	table   string
 	conds   []Cond
 }
 
-func (stmt *execStmt) createExecSession(session []*Session, extraQuery ...map[string]interface{}) *Session {
+func (stmt *execStmt) createExecSession(extraQuery ...map[string]interface{}) *Session {
 	var sess *Session
-	if len(session) == 0 || session[0] == nil {
+	if stmt.session == nil {
 		sess = stmt.engine.Table(stmt.table)
 	} else {
-		sess = session[0].Table(stmt.table)
+		sess = stmt.session.Table(stmt.table)
 	}
 	if len(extraQuery) > 0 {
 		for k, v := range extraQuery[0] {
@@ -54,18 +55,24 @@ func (stmt *execStmt) createExecSession(session []*Session, extraQuery ...map[st
 	return sess
 }
 
+func (stmt *execStmt) setSession(session *Session) {
+	if stmt.session == nil {
+		stmt.session = session
+	}
+}
+
 type queryStmt struct {
 	*execStmt
 	bys []by
 	limit limit
 }
-func (stmt *queryStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	sess := stmt.createQuerySession(session)
+func (stmt *queryStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.createQuerySession()
 	return sess.Get(bean)
 }
 
-func (stmt *queryStmt) createQuerySession(session []*Session, extraQuery ...map[string]interface{}) *Session {
-	sess := stmt.execStmt.createExecSession(session, extraQuery...)
+func (stmt *queryStmt) createQuerySession(extraQuery ...map[string]interface{}) *Session {
+	sess := stmt.execStmt.createExecSession(extraQuery...)
 
 	for _, b := range stmt.bys {
 		sess = b.makeBy(sess)
@@ -80,8 +87,8 @@ func (stmt *queryStmt) createQuerySession(session []*Session, extraQuery ...map[
 type listStmt struct {
 	*queryStmt
 }
-func (stmt *listStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	sess := stmt.queryStmt.createQuerySession(session)
+func (stmt *listStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.queryStmt.createQuerySession()
 	return stmt.find(sess, bean)
 }
 
@@ -94,8 +101,8 @@ type selectStmt struct {
 	*listStmt
 	fields []string
 }
-func (stmt *selectStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	sess := stmt.queryStmt.createQuerySession(session, map[string]interface{}{_select:stmt.fields})
+func (stmt *selectStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.queryStmt.createQuerySession(map[string]interface{}{_select:stmt.fields})
 	return stmt.find(sess, bean)
 }
 
@@ -103,8 +110,8 @@ type sqlStmt struct {
 	*listStmt
 	sql string
 }
-func (stmt *sqlStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	sess := stmt.queryStmt.createQuerySession(session, map[string]interface{}{_sql:stmt.sql})
+func (stmt *sqlStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.queryStmt.createQuerySession(map[string]interface{}{_sql:stmt.sql})
 	return stmt.find(sess, bean)
 }
 
@@ -113,8 +120,8 @@ type innerJoinStmt struct {
 	joinedTbl string
 	joinCond string
 }
-func (stmt *innerJoinStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	sess := stmt.queryStmt.createQuerySession(session, map[string]interface{}{
+func (stmt *innerJoinStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.queryStmt.createQuerySession(map[string]interface{}{
 		_innerJoin:[]string{stmt.joinedTbl, stmt.joinCond},
 	})
 	return stmt.find(sess, bean)
@@ -124,8 +131,8 @@ type updateStmt struct {
 	*execStmt
 	cols []string
 }
-func (stmt *updateStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	sess := stmt.execStmt.createExecSession(session)
+func (stmt *updateStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.execStmt.createExecSession()
 	if len(stmt.cols) > 0 {
 		sess = sess.Cols(stmt.cols...)
 	}
@@ -135,24 +142,16 @@ func (stmt *updateStmt) Exec(bean interface{}, session ...*Session) (StmtResult,
 type insertStmt struct {
 	*execStmt
 }
-func (stmt *insertStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
+func (stmt *insertStmt) Exec(bean interface{}) (StmtResult, error) {
 	stmt.conds = nil
-	sess := stmt.execStmt.createExecSession(session)
+	sess := stmt.execStmt.createExecSession()
 	return sess.Insert(bean)
 }
 
 type deleteStmt struct {
 	*execStmt
 }
-func (stmt *deleteStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	sess := stmt.execStmt.createExecSession(session)
+func (stmt *deleteStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.execStmt.createExecSession()
 	return sess.Delete(bean)
 }
-
-type voidStmt struct {
-}
-
-func (stmt *voidStmt) Exec(bean interface{}, session ...*Session) (StmtResult, error) {
-	return true, nil
-}
-

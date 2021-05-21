@@ -115,3 +115,9 @@ func Limit(count int, offset ...int) O {
 		opts.limit = l
 	}
 }
+
+func WithSession(session *Session) O {
+	return func(opts *Options) {
+		opts.session = session
+	}
+}

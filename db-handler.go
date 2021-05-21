@@ -1,16 +1,14 @@
 package dbx
 
 func (db *DBI) QueryStmt(tblName string, conds []Cond, options ...O) *queryStmt {
-	opts := &Options{}
-	for _, opt := range options {
-		opt(opts)
-	}
+	opts := getOptions(options...)
 
 	return &queryStmt{
 		execStmt: &execStmt{
 			engine: db,
 			table: tblName,
 			conds: conds,
+			session: opts.session,
 		},
 		bys: opts.bys,
 		limit: opts.limit,
@@ -45,19 +43,23 @@ func (db *DBI) InnerJoinStmt(tblName string, joinedTblName string, joinCond stri
 	}
 }
 
-func (db *DBI) InsertStmt(tblName string) *insertStmt {
+func (db *DBI) InsertStmt(tblName string, options ...O) *insertStmt {
+	opts := getOptions(options...)
 	return &insertStmt{
 		execStmt: &execStmt{
 			engine: db,
+			session: opts.session,
 			table: tblName,
 		},
 	}
 }
 
-func (db *DBI) UpdateStmt(tblName string, conds []Cond, cols []string) *updateStmt {
+func (db *DBI) UpdateStmt(tblName string, conds []Cond, cols []string, options ...O) *updateStmt {
+	opts := getOptions(options...)
 	return &updateStmt{
 		execStmt: &execStmt{
 			engine: db,
+			session: opts.session,
 			table: tblName,
 			conds: conds,
 		},
@@ -65,10 +67,12 @@ func (db *DBI) UpdateStmt(tblName string, conds []Cond, cols []string) *updateSt
 	}
 }
 
-func (db *DBI) DeleteStmt(tblName string, conds []Cond) *deleteStmt {
+func (db *DBI) DeleteStmt(tblName string, conds []Cond, options ...O) *deleteStmt {
+	opts := getOptions(options...)
 	return &deleteStmt{
 		execStmt: &execStmt{
 			engine: db,
+			session: opts.session,
 			table: tblName,
 			conds: conds,
 		},
@@ -100,23 +104,19 @@ func InnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds 
 	return db.InnerJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
 }
 
-func InsertStmt(tblName string) *insertStmt {
+func InsertStmt(tblName string, options ...O) *insertStmt {
 	db := getDefaultConnection()
-	return db.InsertStmt(tblName)
+	return db.InsertStmt(tblName, options...)
 }
 
-func UpdateStmt(tblName string, conds []Cond, cols []string) *updateStmt {
+func UpdateStmt(tblName string, conds []Cond, cols []string, options ...O) *updateStmt {
 	db := getDefaultConnection()
-	return db.UpdateStmt(tblName, conds, cols)
+	return db.UpdateStmt(tblName, conds, cols, options...)
 }
 
-func DeleteStmt(tblName string, conds []Cond) *deleteStmt {
+func DeleteStmt(tblName string, conds []Cond, options ...O) *deleteStmt {
 	db := getDefaultConnection()
-	return db.DeleteStmt(tblName, conds)
-}
-
-func VoidStmt() *voidStmt {
-	return &voidStmt{}
+	return db.DeleteStmt(tblName, conds, options...)
 }
 
 // some re-usable handler
@@ -164,23 +164,23 @@ func (db *DBI) Select(tblName string, fields []string, conds []Cond, res interfa
 	return err
 }
 
-func (db *DBI) Insert(tblName string, vals interface{}) error {
-	_, err := db.InsertStmt(tblName).Exec(vals)
+func (db *DBI) Insert(tblName string, vals interface{}, options ...O) error {
+	_, err := db.InsertStmt(tblName, options...).Exec(vals)
 	return err
 }
 
-func (db *DBI) Update(tblName string, conds []Cond, cols []string, vals interface{}) error {
-	_, err := db.UpdateStmt(tblName, conds, cols).Exec(vals)
+func (db *DBI) Update(tblName string, conds []Cond, cols []string, vals interface{}, options ...O) error {
+	_, err := db.UpdateStmt(tblName, conds, cols, options...).Exec(vals)
 	return err
 }
 
-func (db *DBI) Delete(tblName string, conds []Cond, vals interface{}) error {
-	_, err := db.DeleteStmt(tblName, conds).Exec(vals)
+func (db *DBI) Delete(tblName string, conds []Cond, vals interface{}, options ...O) error {
+	_, err := db.DeleteStmt(tblName, conds, options...).Exec(vals)
 	return err
 }
 
-func (db *DBI) RunSQL(tblName string, sql string, res interface{}) error {
-	stmt := db.SqlStmt(tblName, sql)
+func (db *DBI) RunSQL(tblName string, sql string, res interface{}, options ...O) error {
+	stmt := db.SqlStmt(tblName, sql, options...)
 	_, err := stmt.Exec(res)
 	return err
 }
@@ -224,24 +224,24 @@ func Select(tblName string, fields []string, conds []Cond, res interface{}, opti
 	return db.Select(tblName, fields, conds, res, options...)
 }
 
-func Insert(tblName string, vals interface{}) error {
+func Insert(tblName string, vals interface{}, options ...O) error {
 	db := getDefaultConnection()
-	return db.Insert(tblName, vals)
+	return db.Insert(tblName, vals, options...)
 }
 
-func Update(tblName string, conds []Cond, cols []string, vals interface{}) error {
+func Update(tblName string, conds []Cond, cols []string, vals interface{}, options ...O) error {
 	db := getDefaultConnection()
-	return db.Update(tblName, conds, cols, vals)
+	return db.Update(tblName, conds, cols, vals, options...)
 }
 
-func Delete(tblName string, conds []Cond, vals interface{}) error {
+func Delete(tblName string, conds []Cond, vals interface{}, options ...O) error {
 	db := getDefaultConnection()
-	return db.Delete(tblName, conds, vals)
+	return db.Delete(tblName, conds, vals, options...)
 }
 
-func RunSQL(tblName string, sql string, res interface{}) error {
+func RunSQL(tblName string, sql string, res interface{}, options ...O) error {
 	db := getDefaultConnection()
-	return db.RunSQL(tblName, sql, res)
+	return db.RunSQL(tblName, sql, res, options...)
 }
 
 func Iter(tblName string, conds []Cond, bean interface{}, options ...O) (<-chan interface{}) {
@@ -255,12 +255,20 @@ func Iterate(tblName string, conds []Cond, bean interface{}, it FnIterate, optio
 }
 
 // some statistic func
-func (stmt *queryStmt) Count(bean interface{}, session ...*Session) (int64, error) {
-	sess := stmt.createQuerySession(session)
+func (stmt *queryStmt) Count(bean interface{}) (int64, error) {
+	sess := stmt.createQuerySession()
 	return sess.Count(bean)
 }
 
-func (stmt *queryStmt) Sum(bean interface{}, col string, session ...*Session) (float64, error) {
-	sess := stmt.createQuerySession(session)
+func (stmt *queryStmt) Sum(bean interface{}, col string) (float64, error) {
+	sess := stmt.createQuerySession()
 	return sess.Sum(bean, col)
+}
+
+func getOptions(options ...O) *Options {
+	opts := &Options{}
+	for _, opt := range options {
+		opt(opts)
+	}
+	return opts
 }
