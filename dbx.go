@@ -139,3 +139,17 @@ func (s *dbxStmt) Iter(bean interface{}) (<-chan interface{}) {
 func (s *dbxStmt) Iterate(bean interface{}, it FnIterate) error {
 	return s.engine.Iterate(s.table, s.conds, bean, it, s.opts...)
 }
+
+func (s *dbxStmt) Count(bean interface{}) (int64, error) {
+	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
+		return s.engine.InnerJoinStmt(s.table, s.joinedTbl, s.joinCond, s.conds, s.opts...).Count(bean)
+	}
+	return s.engine.ListStmt(s.table, s.conds, s.opts...).Count(bean)
+}
+
+func (s *dbxStmt) Sum(bean interface{}, col string) (float64, error) {
+	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
+		return s.engine.InnerJoinStmt(s.table, s.joinedTbl, s.joinCond, s.conds, s.opts...).Sum(bean, col)
+	}
+	return s.engine.ListStmt(s.table, s.conds, s.opts...).Sum(bean, col)
+}

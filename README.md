@@ -25,6 +25,7 @@
    type User struct {
        Id int
        Name string
+       Age int
    }
    
    var user User
@@ -33,7 +34,7 @@
    // statement
    //  Query
    has, err := db.XStmt().Where(dbx.Eq("name", "rosbit")).Get(&user)
-   err := db.XStmt().Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Get(&user)
+   err := db.XStmt().Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Desc("name").Get(&user)
    err := db.XStmt().Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Limit(2).List(&users)
    
    //  iterate
@@ -46,6 +47,9 @@
    err := db.XStmt().Insert(&user)
    err := db.XStmt().Where(dbx.Eq("id", user.Id)).Cols("name", "age").Update(&user)
    err := db.XStmt().Where(dbx.Eq("id", user.Id)).Delete(&user)
+
+   count, err := db.XStmt().Where(dbx.Eq("name", "rosbit")).Count(&user)
+   sum, err := db.XStmt().Where(dbx.Eq("name", "rosbit")).Sum(&user, "age")
    ```
    
  - Piped transaction
