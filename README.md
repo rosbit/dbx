@@ -33,23 +33,23 @@
    
    // statement
    //  Query
-   has, err := db.XStmt().Where(dbx.Eq("name", "rosbit")).Get(&user)
-   err := db.XStmt().Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Desc("name").Get(&user)
-   err := db.XStmt().Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Limit(2).List(&users)
+   has, err := db.XStmt().Table("user").Where(dbx.Eq("name", "rosbit")).Get(&user)
+   err := db.XStmt().Table("user").Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Desc("name").Get(&user)
+   err := db.XStmt().Table("user").Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Limit(2).List(&users)
    
    //  iterate
-   for uu := range db.XStmt().Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Iter(&user) {
+   for uu := range db.XStmt().Table("user").Or(dbx.Eq("name", "rosbit"), dbx.Eq("age", 1)).Iter(&user) {
        u := uu.(*User)
        // do something with u
    }
    
    //  insert/update/delete
-   err := db.XStmt().Insert(&user)
-   err := db.XStmt().Where(dbx.Eq("id", user.Id)).Cols("name", "age").Update(&user)
-   err := db.XStmt().Where(dbx.Eq("id", user.Id)).Delete(&user)
+   err := db.XStmt().Table("user").Insert(&user)
+   err := db.XStmt().Table("user").Where(dbx.Eq("id", user.Id)).Cols("name", "age").Update(&user)
+   err := db.XStmt().Table("user").Where(dbx.Eq("id", user.Id)).Delete(&user)
 
-   count, err := db.XStmt().Where(dbx.Eq("name", "rosbit")).Count(&user)
-   sum, err := db.XStmt().Where(dbx.Eq("name", "rosbit")).Sum(&user, "age")
+   count, err := db.XStmt().Table("user").Where(dbx.Eq("name", "rosbit")).Count(&user)
+   sum, err := db.XStmt().Table("user").Where(dbx.Eq("name", "rosbit")).Sum(&user, "age")
    ```
    
  - Piped transaction
