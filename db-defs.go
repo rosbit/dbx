@@ -45,24 +45,9 @@ type (
 
 // --- transaction ---
 type (
-	ArgKey  = string
-
-	TxStepHandler func(*TxStepRes)(*TxStep, error)
-
-	TxStepRes struct {
-		session *Session
-		db      *DBI
-		bean     interface{}
-		res      StmtResult
-		args     map[ArgKey]interface{}
-	}
-
-	TxStep struct {
-		step  TxStepHandler
-		stmt  Stmt
-		bean  interface{}
-		args  map[ArgKey]interface{}
-	}
+	ArgKey = string
+	TxStmt = Pipe
+	TxStep = Bolt
 
 	TxA func(args *map[ArgKey]interface{})
 )

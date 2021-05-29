@@ -1,22 +1,50 @@
 package dbx
 
-// --- transaction ---
-
 import (
-	"reflect"
 	"fmt"
 )
 
-var (
-	// special tx step handlers
-	CommitAfterExecStmt TxStepHandler = nil
-)
-
-func (f1 TxStepHandler) sameHandler(f2 TxStepHandler) bool {
-	return reflect.ValueOf(f1).Pointer() == reflect.ValueOf(f2).Pointer()
+type Pipe struct {
+	*dbxStmt
+	args map[ArgKey]interface{}
+	session *Session
 }
 
-// --- args options ----
+type FnBolt func(*Pipe)(*Bolt, error)
+
+type Bolt struct {
+	pipe *Pipe
+	bolt FnBolt
+}
+
+func (ts *Pipe) Next(txArgs ...TxA) *Pipe {
+	return ts.engine.newPipe(ts.session, ts.table, txArgs...)
+}
+
+func NextBolt(stmt *Pipe, bolt FnBolt) *Bolt {
+	return &Bolt{
+		pipe: stmt,
+		bolt: bolt,
+	}
+}
+
+var (
+	NextStep = NextBolt
+	RunTx = PipeTx
+)
+
+func (db *DBI) newPipe(session *Session, table string, txArgs ...TxA) *Pipe {
+	args := make(map[ArgKey]interface{})
+	for _, txArg := range txArgs {
+		txArg(&args)
+	}
+
+	return &Pipe{
+		dbxStmt: db.XStmt(table).XSession(session),
+		args: args,
+		session: session,
+	}
+}
 
 func TxArg(name ArgKey, val interface{}) TxA {
 	return func(args *map[ArgKey]interface{}) {
@@ -43,53 +71,29 @@ func TxArgs(args map[ArgKey]interface{}) TxA {
 	}
 }
 
-func TxCopyArgs(step *TxStepRes) TxA {
-	return TxArgs(step.args)
+func (ts *Pipe) CopyArgs() TxA {
+	return TxArgs(ts.args)
 }
 
-// --- create next step with optional args ---
-func NextStep(handler TxStepHandler, stmt Stmt, bean interface{}, txArgs ...TxA) *TxStep {
-	args := make(map[ArgKey]interface{})
-	for _, txArg := range txArgs {
-		txArg(&args)
-	}
-
-	return &TxStep{handler, stmt, bean, args}
-}
-
-// --- previous step ---
-func (step *TxStepRes) Has() bool {
-	return step.res.(bool)
-}
-
-func (step *TxStepRes) Val() interface{} {
-	return step.bean
-}
-
-func (step *TxStepRes) Arg(key ArgKey) (arg interface{}) {
-	if len(step.args) == 0 {
+func (ts *Pipe) Arg(key ArgKey) (arg interface{}) {
+	if len(ts.args) == 0 {
 		return nil
 	}
-	arg, _ = step.args[key]
+	arg, _ = ts.args[key]
 	return
 }
 
-func (step *TxStepRes) Session() (*Session) {
-	return step.session
-}
-
-func (step *TxStepRes) DB() (*DBI) {
-	return step.db
-}
-
-// run a transation step by step
-func RunTx(firstStep *TxStep) (err error) {
+func PipeTx(bolt FnBolt, txArgs ...TxA) (err error) {
 	db := getDefaultConnection()
-	return db.RunTx(firstStep)
+	return db.PipeTx(bolt, txArgs...)
 }
 
-func (db *DBI) RunTx(firstStep *TxStep) (err error) {
-	if firstStep == nil || firstStep.stmt == nil {
+func (db *DBI) RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
+	return db.PipeTx(bolt, txArgs...)
+}
+
+func (db *DBI) PipeTx(bolt FnBolt, txArgs ...TxA) (err error) {
+	if bolt == nil {
 		return nil
 	}
 
@@ -97,38 +101,31 @@ func (db *DBI) RunTx(firstStep *TxStep) (err error) {
 		if r := recover(); r != nil {
 			var ok bool
 			if err, ok = r.(error); ok {
-				return // err to RunTx() caller
+				return // err to BoltTx() caller
 			}
-			fmt.Printf("panic in RunTx: %v\n", r)
+			fmt.Printf("panic in BoltTx: %v\n", r)
 		}
 	}()
 
 	session := db.NewSession()
 	defer session.Close()
-
 	if err = session.Begin(); err != nil {
 		return err
 	}
 
-	nextStep := firstStep
+	handleBolt := bolt
+	stmt := db.newPipe(session, "", txArgs...)
 	for {
-		stmt, bean, handleTxStep, args := nextStep.stmt, nextStep.bean, nextStep.step, nextStep.args
-		stmt.setSession(session)
-		res, err := stmt.Exec(bean)
+		nextBolt, err := handleBolt(stmt)
 		if err != nil {
 			return err
 		}
-
-		if handleTxStep.sameHandler(CommitAfterExecStmt) {
+		if nextBolt == nil {
 			session.Commit()
 			return nil
 		}
-
-		if nextStep, err = handleTxStep(&TxStepRes{session, db, bean, res, args}); err != nil {
-			return err
-		}
-
-		if nextStep == nil || nextStep.stmt == nil {
+		stmt, handleBolt = nextBolt.pipe, nextBolt.bolt
+		if stmt == nil || handleBolt == nil {
 			session.Commit()
 			return nil
 		}
