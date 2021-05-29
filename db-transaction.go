@@ -17,11 +17,11 @@ type Bolt struct {
 	bolt FnBolt
 }
 
-func (ts *Pipe) Next(txArgs ...TxA) *Pipe {
-	return ts.engine.newPipe(ts.session, ts.table, txArgs...)
+func (ts *TxStmt) Next(txArgs ...TxA) *TxStmt {
+	return ts.engine.newTxStmt(ts.session, ts.table, txArgs...)
 }
 
-func NextBolt(stmt *Pipe, bolt FnBolt) *Bolt {
+func NextStep(stmt *TxStmt, bolt FnBolt) *TxStep {
 	return &Bolt{
 		pipe: stmt,
 		bolt: bolt,
@@ -29,17 +29,17 @@ func NextBolt(stmt *Pipe, bolt FnBolt) *Bolt {
 }
 
 var (
-	NextStep = NextBolt
-	RunTx = PipeTx
+	NextBolt = NextStep
+	PipeTx = RunTx
 )
 
-func (db *DBI) newPipe(session *Session, table string, txArgs ...TxA) *Pipe {
+func (db *DBI) newTxStmt(session *Session, table string, txArgs ...TxA) *TxStmt {
 	args := make(map[ArgKey]interface{})
 	for _, txArg := range txArgs {
 		txArg(&args)
 	}
 
-	return &Pipe{
+	return &TxStmt{
 		dbxStmt: db.XStmt(table).XSession(session),
 		args: args,
 		session: session,
@@ -71,11 +71,11 @@ func TxArgs(args map[ArgKey]interface{}) TxA {
 	}
 }
 
-func (ts *Pipe) CopyArgs() TxA {
+func (ts *TxStmt) CopyArgs() TxA {
 	return TxArgs(ts.args)
 }
 
-func (ts *Pipe) Arg(key ArgKey) (arg interface{}) {
+func (ts *TxStmt) Arg(key ArgKey) (arg interface{}) {
 	if len(ts.args) == 0 {
 		return nil
 	}
@@ -83,16 +83,16 @@ func (ts *Pipe) Arg(key ArgKey) (arg interface{}) {
 	return
 }
 
-func PipeTx(bolt FnBolt, txArgs ...TxA) (err error) {
+func RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
 	db := getDefaultConnection()
-	return db.PipeTx(bolt, txArgs...)
-}
-
-func (db *DBI) RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
-	return db.PipeTx(bolt, txArgs...)
+	return db.RunTx(bolt, txArgs...)
 }
 
 func (db *DBI) PipeTx(bolt FnBolt, txArgs ...TxA) (err error) {
+	return db.RunTx(bolt, txArgs...)
+}
+
+func (db *DBI) RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
 	if bolt == nil {
 		return nil
 	}
@@ -114,7 +114,7 @@ func (db *DBI) PipeTx(bolt FnBolt, txArgs ...TxA) (err error) {
 	}
 
 	handleBolt := bolt
-	stmt := db.newPipe(session, "", txArgs...)
+	stmt := db.newTxStmt(session, "", txArgs...)
 	for {
 		nextBolt, err := handleBolt(stmt)
 		if err != nil {
