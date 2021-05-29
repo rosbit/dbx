@@ -18,7 +18,7 @@ type Bolt struct {
 }
 
 func (ts *Pipe) Next(txArgs ...TxA) *Pipe {
-	return ts.engine.newPipe(ts.session, txArgs...)
+	return ts.engine.newPipe(ts.session, ts.table, txArgs...)
 }
 
 func NextBolt(stmt *Pipe, bolt FnBolt) *Bolt {
@@ -28,14 +28,14 @@ func NextBolt(stmt *Pipe, bolt FnBolt) *Bolt {
 	}
 }
 
-func (db *DBI) newPipe(session *Session, txArgs ...TxA) *Pipe {
+func (db *DBI) newPipe(session *Session, table string, txArgs ...TxA) *Pipe {
 	args := make(map[ArgKey]interface{})
 	for _, txArg := range txArgs {
 		txArg(&args)
 	}
 
 	return &Pipe{
-		dbxStmt: db.XStmt().XSession(session),
+		dbxStmt: db.XStmt(table).XSession(session),
 		args: args,
 		session: session,
 	}
@@ -80,7 +80,7 @@ func (db *DBI) PipeTx(bolt FnBolt, txArgs ...TxA) (err error) {
 	}
 
 	handleBolt := bolt
-	stmt := db.newPipe(session, txArgs...)
+	stmt := db.newPipe(session, "", txArgs...)
 	for {
 		nextBolt, err := handleBolt(stmt)
 		if err != nil {

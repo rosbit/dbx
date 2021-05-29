@@ -10,14 +10,20 @@ type dbxStmt struct {
 	opts []O
 }
 
-func XStmt() *dbxStmt {
+func XStmt(tbl ...string) *dbxStmt {
 	db := getDefaultConnection()
-	return db.XStmt()
+	return db.XStmt(tbl...)
 }
 
-func (db *DBI) XStmt() *dbxStmt {
+func (db *DBI) XStmt(tbl ...string) *dbxStmt {
+	var t string
+	if len(tbl) > 0 {
+		t = tbl[0]
+	}
+
 	return &dbxStmt{
 		engine: db,
+		table: t,
 	}
 }
 
