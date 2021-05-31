@@ -17,28 +17,12 @@ type Bolt struct {
 	bolt FnBolt
 }
 
-func (ts *TxStmt) Next(txArgs ...TxA) *TxStmt {
-	return ts.engine.newTxStmt(ts.session, ts.table, txArgs...)
-}
-
-func NextStep(stmt *TxStmt, bolt FnBolt) *TxStep {
+func (ts *TxStmt) Jump(bolt FnBolt, txArgs ...TxA) *TxStep {
 	return &Bolt{
-		pipe: stmt,
+		pipe: ts.engine.newTxStmt(ts.session, ts.table, txArgs...),
 		bolt: bolt,
 	}
 }
-
-func TxJump(bolt FnBolt, stmt *TxStmt) *TxStep {
-	return &Bolt{
-		pipe: stmt,
-		bolt: bolt,
-	}
-}
-
-var (
-	NextBolt = NextStep
-	PipeTx = RunTx
-)
 
 func (db *DBI) newTxStmt(session *Session, table string, txArgs ...TxA) *TxStmt {
 	args := make(map[ArgKey]interface{})
@@ -92,10 +76,6 @@ func (ts *TxStmt) Arg(key ArgKey) (arg interface{}) {
 
 func RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
 	db := getDefaultConnection()
-	return db.RunTx(bolt, txArgs...)
-}
-
-func (db *DBI) PipeTx(bolt FnBolt, txArgs ...TxA) (err error) {
 	return db.RunTx(bolt, txArgs...)
 }
 

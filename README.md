@@ -85,9 +85,9 @@
          return nil, fmt.Errorf("user not found")
       }
    
-      return dbx.TxJump(
+      return stmt.Jump(
          find_balance,
-         stmt.Next(stmt.CopyArgs()),
+         stmt.CopyArgs(),
       ), nil
    }
    
