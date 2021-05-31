@@ -47,7 +47,7 @@
    err := db.XStmt("user").Insert(&user)
    err := db.XStmt("user").Where(dbx.Eq("id", user.Id)).Cols("name", "age").Update(&user)
    err := db.XStmt("user").Where(dbx.Eq("id", user.Id)).Delete(&user)
-
+   
    count, err := db.XStmt("user").Where(dbx.Eq("name", "rosbit")).Count(&user)
    sum, err := db.XStmt("user").Where(dbx.Eq("name", "rosbit")).Sum(&user, "age")
    ```
@@ -89,6 +89,14 @@
          find_balance,
          stmt.CopyArgs(),
       ), nil
+      // return find_balance(stmt) // in this example, they are same.
+      //
+      // If you want add other variable arguments, you can code like the following:
+      // return stmt.Jump(
+      //   find_balance,
+      //   stmt.CopyArgs(),
+      //   dbx.TxArg("arg-name", "arg-val"),
+      // ), nil
    }
    
    func find_balance(stmt *dbx.TxStmt) (*dbx.TxStep, error) {
@@ -112,7 +120,7 @@
       return nil, stmt.Table("balance").Where(dbx.Eq("user_id", userId)).Cols("balance").Update(&balance)
    }
    ```
-
+   
  - Conditions
    ```go
    // conditions can be grouped by dbx.Where()
