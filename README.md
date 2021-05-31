@@ -191,19 +191,13 @@
    // SQL
    dbx.Where(dbx.Sql("select id,name from user"))
    ```
-   
- - Options
-   ```go
-   // sorting
-   dbx.OrderBy("id", "name")  // equals to
-   dbx.OrderByDesc("id", "name")
-   dbx.OrderByAsc("id", "name")
-   
-   // grouping
-   dbx.GroupBy("id")
-   
-   // limit count
-   dbx.Limit(10)
-   dbx.Limit(20, 100)  // offset: 100, count: 20
-   ```
 
+## Status
+
+The package is fully tested.
+
+## Contribution
+
+Pull requests are welcome! Also, if you want to discuss something send a pull request with proposal and changes.
+
+__Convention:__ fork the repository and make changes on your fork in a feature branch.
