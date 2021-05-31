@@ -28,6 +28,13 @@ func NextStep(stmt *TxStmt, bolt FnBolt) *TxStep {
 	}
 }
 
+func TxJump(bolt FnBolt, stmt *TxStmt) *TxStep {
+	return &Bolt{
+		pipe: stmt,
+		bolt: bolt,
+	}
+}
+
 var (
 	NextBolt = NextStep
 	PipeTx = RunTx

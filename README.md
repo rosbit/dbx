@@ -85,9 +85,9 @@
          return nil, fmt.Errorf("user not found")
       }
    
-      return dbx.NextStep(
-         stmt.Next(stmt.CopyArgs()),
+      return dbx.TxJump(
          find_balance,
+         stmt.Next(stmt.CopyArgs()),
       ), nil
    }
    
@@ -104,14 +104,12 @@
           balance.UserId = userId
           balance.Balance = incBalance
    
-          return nil, stmt.Next().Table("balance").Insert(&balance) // Next() is not necessary since v0.9.2
-          // return nil, stmt.Table("balance").Insert(&balance)
+          return nil, stmt.Table("balance").Insert(&balance)
       }
    
       // increment balance, update it
       balance.Balance += incBalance
-      return nil, stmt.Next().Table("balance").Where(dbx.Eq("user_id", userId)).Cols("balance").Update(&balance)
-      // return nil, stmt.Table("balance").Where(dbx.Eq("user_id", userId)).Cols("balance").Update(&balance)
+      return nil, stmt.Table("balance").Where(dbx.Eq("user_id", userId)).Cols("balance").Update(&balance)
    }
    ```
 

@@ -29,7 +29,7 @@ func (db *DBI) XStmt(tbl ...string) *dbxStmt {
 
 func (s *dbxStmt) Table(tbl string, dontReset ...bool) *dbxStmt {
 	s.table = tbl
-	if !(len(dontReset) > 0 && dontResult[0]) {
+	if !(len(dontReset) > 0 && dontReset[0]) {
 		s.conds = nil
 		s.cols = nil
 		s.joinedTbl = ""
