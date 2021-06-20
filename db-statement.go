@@ -8,7 +8,7 @@ import (
 const (
 	_select = "SELECT"
 	_sql = "SQL"
-	_innerJoin = "INNER"
+	_join = "JOIN"
 )
 
 type execStmt struct {
@@ -36,11 +36,11 @@ func (stmt *execStmt) createExecSession(extraQuery ...map[string]interface{}) *S
 				if sql, ok := v.(string); ok {
 					sess.SQL(sql)
 				}
-			case _innerJoin:
+			case _join:
 				vals := v.([]string)
-				joinedTbl, joinCond := vals[0], vals[1]
+				joinedTbl, joinCond, joinType := vals[0], vals[1], vals[2]
 				sess = sess.Select(fmt.Sprintf("%s.*, %s.*", stmt.table, joinedTbl)).
-					Join("INNER", joinedTbl, joinCond)
+					Join(joinType, joinedTbl, joinCond)
 			default:
 			}
 		}
@@ -115,14 +115,15 @@ func (stmt *sqlStmt) Exec(bean interface{}) (StmtResult, error) {
 	return stmt.find(sess, bean)
 }
 
-type innerJoinStmt struct {
+type joinStmt struct {
 	*listStmt
+	joinType string
 	joinedTbl string
 	joinCond string
 }
-func (stmt *innerJoinStmt) Exec(bean interface{}) (StmtResult, error) {
+func (stmt *joinStmt) Exec(bean interface{}) (StmtResult, error) {
 	sess := stmt.queryStmt.createQuerySession(map[string]interface{}{
-		_innerJoin:[]string{stmt.joinedTbl, stmt.joinCond},
+		_join:[]string{stmt.joinedTbl, stmt.joinCond, stmt.joinType},
 	})
 	return stmt.find(sess, bean)
 }

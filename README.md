@@ -123,7 +123,7 @@
    
  - Conditions
    ```go
-   // conditions can be grouped by dbx.Where()
+   // conditions can be grouped by dbx.Where() or XStmt::Where()
    
    // And
    dbx.Eq("a", 1)

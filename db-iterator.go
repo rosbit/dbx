@@ -28,9 +28,9 @@ func (stmt *listStmt) iter(sess *Session, bean interface{}) (<-chan interface{})
 	return iter(sess, bean)
 }
 
-func (stmt *innerJoinStmt) Iter(bean interface{}) (<-chan interface{}) {
+func (stmt *joinStmt) Iter(bean interface{}) (<-chan interface{}) {
 	sess := stmt.queryStmt.createQuerySession(nil, map[string]interface{}{
-		_innerJoin:[]string{stmt.joinedTbl, stmt.joinCond},
+		_join:[]string{stmt.joinedTbl, stmt.joinCond, stmt.joinType},
 	})
 	return stmt.listStmt.iter(sess, bean)
 }
@@ -69,9 +69,9 @@ func (stmt *sqlStmt) Iterate(bean interface{}, it FnIterate) error {
 	return stmt.listStmt.iterate(sess, bean, it)
 }
 
-func (stmt *innerJoinStmt) Iterate(bean interface{}, it FnIterate) error {
+func (stmt *joinStmt) Iterate(bean interface{}, it FnIterate) error {
 	sess := stmt.queryStmt.createQuerySession(nil, map[string]interface{}{
-		_innerJoin:[]string{stmt.joinedTbl, stmt.joinCond},
+		_join:[]string{stmt.joinedTbl, stmt.joinCond, stmt.joinType},
 	})
 	return stmt.listStmt.iterate(sess, bean, it)
 }

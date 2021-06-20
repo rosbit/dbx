@@ -7,6 +7,7 @@ type dbxStmt struct {
 	cols []string
 	joinedTbl string
 	joinCond string
+	joinType string
 	opts []O
 }
 
@@ -34,15 +35,27 @@ func (s *dbxStmt) Table(tbl string, dontReset ...bool) *dbxStmt {
 		s.cols = nil
 		s.joinedTbl = ""
 		s.joinCond = ""
+		s.joinType = ""
 		s.opts = nil
 	}
 	return s
 }
 
-func (s *dbxStmt) InnerJoin(tblName string, joinedTblName string, joinCond string) *dbxStmt {
+func (s *dbxStmt) join(tblName string, joinedTblName string, joinCond string, joinType string) *dbxStmt {
 	s.table = tblName
 	s.joinedTbl = joinedTblName
 	s.joinCond = joinCond
+	s.joinType = joinType
+	return s
+}
+
+func (s *dbxStmt) InnerJoin(tblName string, joinedTblName string, joinCond string) *dbxStmt {
+	s.join(tblName, joinedTblName, joinCond, "INNER")
+	return s
+}
+
+func (s *dbxStmt) LeftJoin(tblName string, joinedTblName string, joinCond string) *dbxStmt {
+	s.join(tblName, joinedTblName, joinCond, "LEFT")
 	return s
 }
 
@@ -128,7 +141,7 @@ func (s *dbxStmt) Get(res interface{}) (bool, error) {
 
 func (s *dbxStmt) List(res interface{}) error {
 	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.InnerJoin(s.table, s.joinedTbl, s.joinCond, s.conds, res, s.opts...)
+		return s.engine.join(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, res, s.opts...)
 	}
 	return s.engine.List(s.table, s.conds, res, s.opts...)
 }
@@ -155,14 +168,14 @@ func (s *dbxStmt) Iterate(bean interface{}, it FnIterate) error {
 
 func (s *dbxStmt) Count(bean interface{}) (int64, error) {
 	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.InnerJoinStmt(s.table, s.joinedTbl, s.joinCond, s.conds, s.opts...).Count(bean)
+		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Count(bean)
 	}
 	return s.engine.ListStmt(s.table, s.conds, s.opts...).Count(bean)
 }
 
 func (s *dbxStmt) Sum(bean interface{}, col string) (float64, error) {
 	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.InnerJoinStmt(s.table, s.joinedTbl, s.joinCond, s.conds, s.opts...).Sum(bean, col)
+		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Sum(bean, col)
 	}
 	return s.engine.ListStmt(s.table, s.conds, s.opts...).Sum(bean, col)
 }

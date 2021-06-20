@@ -35,12 +35,21 @@ func (db *DBI) SqlStmt(tblName string, sql string, options ...O) *sqlStmt {
 	}
 }
 
-func (db *DBI) InnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *innerJoinStmt {
-	return &innerJoinStmt{
+func (db *DBI) joinStmt(tblName string, joinedTblName string, joinCond string, joinType string, conds []Cond, options ...O) *joinStmt {
+	return &joinStmt{
 		listStmt: db.ListStmt(tblName, conds, options...),
+		joinType: joinType,
 		joinedTbl: joinedTblName,
 		joinCond: joinCond,
 	}
+}
+
+func (db *DBI) InnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *joinStmt {
+	return db.joinStmt(tblName, joinedTblName, joinCond, "INNER", conds, options...)
+}
+
+func (db *DBI) LeftJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *joinStmt {
+	return db.joinStmt(tblName, joinedTblName, joinCond, "LEFT", conds, options...)
 }
 
 func (db *DBI) InsertStmt(tblName string, options ...O) *insertStmt {
@@ -99,9 +108,14 @@ func SqlStmt(tblName string, sql string, options ...O) *sqlStmt {
 	return db.SqlStmt(tblName, sql, options...)
 }
 
-func InnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *innerJoinStmt {
+func InnerJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *joinStmt {
 	db := getDefaultConnection()
 	return db.InnerJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
+}
+
+func LeftJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *joinStmt {
+	db := getDefaultConnection()
+	return db.LeftJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
 }
 
 func InsertStmt(tblName string, options ...O) *insertStmt {
@@ -152,8 +166,20 @@ func (db *DBI) Find(tblName string, conds []Cond, res interface{}, options ...O)
 	return db.List(tblName, conds, res, options...)
 }
 
+func (db *DBI) join(tblName string, joinedTblName string, joinCond string, joinType string, conds []Cond, res interface{}, options ...O) error {
+	stmt := db.joinStmt(tblName, joinedTblName, joinCond, joinType, conds, options...)
+	_, err := stmt.Exec(res)
+	return err
+}
+
 func (db *DBI) InnerJoin(tblName string, joinedTblName string, joinCond string, conds []Cond, res interface{}, options ...O) error {
 	stmt := db.InnerJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
+	_, err := stmt.Exec(res)
+	return err
+}
+
+func (db *DBI) LeftJoin(tblName string, joinedTblName string, joinCond string, conds []Cond, res interface{}, options ...O) error {
+	stmt := db.LeftJoinStmt(tblName, joinedTblName, joinCond, conds, options...)
 	_, err := stmt.Exec(res)
 	return err
 }
@@ -217,6 +243,11 @@ var Find = List
 func InnerJoin(tblName string, joinedTblName string, joinCond string, conds []Cond, res interface{}, options ...O) error {
 	db := getDefaultConnection()
 	return db.InnerJoin(tblName, joinedTblName, joinCond, conds, res, options...)
+}
+
+func LeftJoin(tblName string, joinedTblName string, joinCond string, conds []Cond, res interface{}, options ...O) error {
+	db := getDefaultConnection()
+	return db.LeftJoin(tblName, joinedTblName, joinCond, conds, res, options...)
 }
 
 func Select(tblName string, fields []string, conds []Cond, res interface{}, options ...O) error {
