@@ -12,6 +12,10 @@ func Cols(field ...string) []string {
 	return field
 }
 
+func OnlyCond(cond string) AndElem {
+	return &onlyCond{cond}
+}
+
 func Eq(fieldName string, val interface{}) AndElem {
 	return &eqCond{fieldName, val}
 }

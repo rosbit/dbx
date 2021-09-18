@@ -68,6 +68,19 @@ func makeInElem(field string, val []interface{}, prep string) (string, []interfa
 }
 
 // implementations of interface Cond
+type onlyCond struct {
+	cond string
+}
+func (e *onlyCond) makeCond(sess *Session) *Session {
+	return makeCond(e, sess)
+}
+func (e *onlyCond) mkAndElem() (string, []interface{}) {
+	if len(e.cond) == 0 {
+		return "", nil
+	}
+	return e.cond, nil
+}
+
 type eqCond struct {
 	field string
 	val interface{}
@@ -96,7 +109,9 @@ func (e *opCond) mkAndElem() (string, []interface{}) {
 		return "", nil
 	}
 	if len(e.op) == 0 {
-		e.op = "="
+		// e.op = "="
+		// neglect val
+		return e.field, nil
 	}
 	backquote := getQuote(e.field)
 	return fmt.Sprintf("%s%s%s %s ?", backquote, e.field, backquote, e.op), []interface{}{e.val}
