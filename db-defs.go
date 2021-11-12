@@ -7,6 +7,7 @@ import (
 type (
 	Session = xorm.Session
 	FnIterate = xorm.IterFunc
+	xormSession xorm.Session // adding methods is allowed
 )
 
 type (
@@ -17,8 +18,12 @@ type (
 		setSession(session *Session)
 	}
 
+	condBuilder interface {
+		appendCond(query string, args ...interface{}) condBuilder
+	}
+
 	Cond interface {
-		makeCond(sess *Session) *Session
+		makeCond(condBuilder) condBuilder
 	}
 
 	AndElem interface {
@@ -34,10 +39,15 @@ type (
 		makeLimit(sess *Session) *Session
 	}
 
+	Set interface {
+		makeSetClause() (setClaus string, v interface{})
+	}
+
 	Options struct {
 		bys []by
 		limit limit
 		session *Session
+		selection string
 	}
 
 	O func(opts *Options)

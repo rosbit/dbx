@@ -4,6 +4,7 @@ type dbxStmt struct {
 	engine *DBI
 	table string
 	conds []Cond
+	sets []Set
 	cols []string
 	joinedTbl string
 	joinCond string
@@ -32,6 +33,7 @@ func (s *dbxStmt) Table(tbl string, dontReset ...bool) *dbxStmt {
 	s.table = tbl
 	if !(len(dontReset) > 0 && dontReset[0]) {
 		s.conds = nil
+		s.sets = nil
 		s.cols = nil
 		s.joinedTbl = ""
 		s.joinCond = ""
@@ -97,6 +99,13 @@ func (s *dbxStmt) NotIn(field string, val ...interface{}) *dbxStmt {
 	return s
 }
 
+func (s *dbxStmt) Set(set ...Set) *dbxStmt {
+	if len(set) > 0 {
+		s.sets = append(s.sets, set...)
+	}
+	return s
+}
+
 func (s *dbxStmt) Cols(col ...string) *dbxStmt {
 	if len(col) > 0 {
 		s.cols = append(s.cols, col...)
@@ -125,6 +134,13 @@ func (s *dbxStmt) GroupBy(field ...string) *dbxStmt {
 	return s
 }
 
+func (s *dbxStmt) SelectCols(selection string) *dbxStmt {
+	if len(selection) > 0 {
+		s.opts = append(s.opts, SelectCols(selection))
+	}
+	return s
+}
+
 func (s *dbxStmt) Limit(count int, offset ...int) *dbxStmt {
 	s.opts = append(s.opts, Limit(count, offset...))
 	return s
@@ -135,7 +151,27 @@ func (s *dbxStmt) XSession(session *Session) *dbxStmt {
 	return s
 }
 
-func (s *dbxStmt) Get(res interface{}) (bool, error) {
+func (s *dbxStmt) Get(res interface{}) (has bool, err error) {
+	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
+		s.opts = append(s.opts, Limit(1))
+		if isSlicePtr(res) {
+			if err = s.engine.join(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, res, s.opts...); err != nil {
+				return
+			}
+			has = sliceLen(res) > 0
+			return
+		}
+
+		r := mk1ElemSlicePtr(res)
+		if err = s.engine.join(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, r, s.opts...); err != nil {
+			return
+		}
+		if has = sliceLen(r) > 0; !has {
+			return
+		}
+		copySliceElem(r, res)
+		return
+	}
 	return s.engine.Get(s.table, s.conds, res, s.opts...)
 }
 
@@ -150,8 +186,11 @@ func (s *dbxStmt) Insert(vals interface{}) error {
 	return s.engine.Insert(s.table, vals, s.opts...)
 }
 
-func (s *dbxStmt) Update(vals interface{}) error {
-	return s.engine.Update(s.table, s.conds, s.cols, vals, s.opts...)
+func (s *dbxStmt) Update(vals interface{}) (int64, error) {
+	if len(s.sets) == 0 {
+		return s.engine.Update(s.table, s.conds, s.cols, vals, s.opts...)
+	}
+	return s.engine.UpdateSet(s.table, s.sets, s.conds, s.opts...)
 }
 
 func (s *dbxStmt) Delete(vals interface{}) error {

@@ -5,13 +5,24 @@ import (
 	"fmt"
 )
 
-func makeCond(a AndElem, sess *Session) *Session {
-    q, v := a.mkAndElem()
-    if len(q) > 0 {
-        sess = sess.And(q, v...)
-    }
-    return sess
+type andElemWrapper struct {
+	a AndElem
 }
+func wrapperAndElem(a AndElem) *andElemWrapper {
+	return &andElemWrapper{a}
+}
+func (c *andElemWrapper) makeCond(cb condBuilder) condBuilder {
+    q, v := c.a.mkAndElem()
+    if len(q) > 0 {
+        cb = cb.appendCond(q, v...)
+    }
+    return cb
+}
+func (c *andElemWrapper) mkAndElem() (string, []interface{}) { return "", nil }
+
+type dummyAndElem struct{}
+func (a *dummyAndElem) makeCond(cb condBuilder) condBuilder { return cb }
+func (a *dummyAndElem) mkAndElem() (string, []interface{}) { return "", nil }
 
 // join with And/OR
 func joinAndElems(conds []AndElem, conj string) (string, []interface{}) {
@@ -69,10 +80,8 @@ func makeInElem(field string, val []interface{}, prep string) (string, []interfa
 
 // implementations of interface Cond
 type onlyCond struct {
+	dummyAndElem
 	cond string
-}
-func (e *onlyCond) makeCond(sess *Session) *Session {
-	return makeCond(e, sess)
 }
 func (e *onlyCond) mkAndElem() (string, []interface{}) {
 	if len(e.cond) == 0 {
@@ -82,11 +91,9 @@ func (e *onlyCond) mkAndElem() (string, []interface{}) {
 }
 
 type eqCond struct {
+	dummyAndElem
 	field string
 	val interface{}
-}
-func (e *eqCond) makeCond(sess *Session) *Session {
-	return makeCond(e, sess)
 }
 func (e *eqCond) mkAndElem() (string, []interface{}) {
 	if len(e.field) == 0 {
@@ -96,13 +103,24 @@ func (e *eqCond) mkAndElem() (string, []interface{}) {
 	return fmt.Sprintf("%s%s%s=?", backquote, e.field, backquote), []interface{}{e.val}
 }
 
+type eqExprCond struct {
+	dummyAndElem
+	field string
+	expr string
+}
+func (e *eqExprCond) mkAndElem() (string, []interface{}) {
+	if len(e.field) == 0 || len(e.expr) == 0 {
+		return "", nil
+	}
+	backquote := getQuote(e.field)
+	return fmt.Sprintf("%s%s%s=%s", backquote, e.field, backquote, e.expr), nil
+}
+
 type opCond struct {
+	dummyAndElem
 	field string
 	op  string
 	val interface{}
-}
-func (e *opCond) makeCond(sess *Session) *Session {
-	return makeCond(e, sess)
 }
 func (e *opCond) mkAndElem() (string, []interface{}) {
 	if len(e.field) == 0 {
@@ -114,34 +132,47 @@ func (e *opCond) mkAndElem() (string, []interface{}) {
 		return e.field, nil
 	}
 	backquote := getQuote(e.field)
-	return fmt.Sprintf("%s%s%s %s ?", backquote, e.field, backquote, e.op), []interface{}{e.val}
+	return fmt.Sprintf("%s%s%s%s?", backquote, e.field, backquote, e.op), []interface{}{e.val}
+}
+
+type opExprCond struct {
+	dummyAndElem
+	field string
+	op  string
+	expr string
+}
+func (e *opExprCond) mkAndElem() (string, []interface{}) {
+	if len(e.field) == 0 {
+		return "", nil
+	}
+	if len(e.op) == 0 || len(e.expr) == 0 {
+		// e.op = "="
+		// neglect val
+		return e.field, nil
+	}
+	backquote := getQuote(e.field)
+	return fmt.Sprintf("%s%s%s %s %s", backquote, e.field, backquote, e.op, e.expr), nil
 }
 
 type andxCond struct {
+	dummyAndElem
 	conds []AndElem
-}
-func (e *andxCond) makeCond(sess *Session) *Session {
-	return makeCond(e, sess)
 }
 func (e *andxCond) mkAndElem() (string, []interface{}) {
 	return joinAndElems(e.conds, "AND")
 }
 
 type orxCond struct {
+	dummyAndElem
 	conds []AndElem
-}
-func (e *orxCond) makeCond(sess *Session) *Session {
-	return makeCond(e, sess)
 }
 func (e *orxCond) mkAndElem() (string, []interface{}) {
 	return joinAndElems(e.conds, "OR")
 }
 
 type notCond struct {
+	dummyAndElem
 	conds []AndElem
-}
-func (e *notCond) makeCond(sess *Session) *Session {
-	return makeCond(e, sess)
 }
 func (e *notCond) mkAndElem() (string, []interface{}) {
 	q, v := joinAndElems(e.conds, "NOT")
@@ -152,22 +183,18 @@ func (e *notCond) mkAndElem() (string, []interface{}) {
 }
 
 type inCond struct {
+	dummyAndElem
 	field string
 	val []interface{}
-}
-func (i *inCond) makeCond(sess *Session) *Session {
-	return makeCond(i, sess)
 }
 func (i *inCond) mkAndElem() (string, []interface{}) {
 	return makeInElem(i.field, i.val, "IN")
 }
 
 type notInCond struct {
+	dummyAndElem
 	field string
 	val []interface{}
-}
-func (i *notInCond) makeCond(sess *Session) *Session {
-	return makeCond(i, sess)
 }
 func (i *notInCond) mkAndElem() (string, []interface{}) {
 	return makeInElem(i.field, i.val, "NOT IN")
@@ -176,8 +203,11 @@ func (i *notInCond) mkAndElem() (string, []interface{}) {
 type sqlCond struct {
 	sql string
 }
-func (s *sqlCond) makeCond(sess *Session) *Session {
-	return sess.Sql(s.sql)
+func (s *sqlCond) makeCond(cb condBuilder) condBuilder {
+	if sess1, ok := cb.(*xormSession); ok {
+		return (*xormSession)((*Session)(sess1).Sql(s.sql))
+	}
+	return cb
 }
 
 func getQuote(fieldName string) (backquote string) {

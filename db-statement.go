@@ -1,6 +1,7 @@
 package dbx
 
 import (
+	"database/sql"
 	"strings"
 	"fmt"
 )
@@ -38,18 +39,22 @@ func (stmt *execStmt) createExecSession(extraQuery ...map[string]interface{}) *S
 				}
 			case _join:
 				vals := v.([]string)
-				joinedTbl, joinCond, joinType := vals[0], vals[1], vals[2]
-				sess = sess.Select(fmt.Sprintf("%s.*, %s.*", stmt.table, joinedTbl)).
-					Join(joinType, joinedTbl, joinCond)
+				joinedTbl, joinCond, joinType, joinSelection := vals[0], vals[1], vals[2], vals[3]
+				if len(joinSelection) == 0 {
+					sess = sess.Select(fmt.Sprintf("%s.*, %s.*", stmt.table, joinedTbl))
+				} else {
+					sess = sess.Select(joinSelection)
+				}
+				sess.Join(joinType, joinedTbl, joinCond)
 			default:
 			}
 		}
 	}
 
 	if len(stmt.conds) > 0 {
-		for i, _ := range stmt.conds {
-			sess = stmt.conds[i].makeCond(sess)
-		}
+		sess1 := (*xormSession)(sess)
+		buildConds(sess1, stmt.conds)
+		sess = (*Session)(sess1)
 	}
 
 	return sess
@@ -65,6 +70,7 @@ type queryStmt struct {
 	*execStmt
 	bys []by
 	limit limit
+	selection string
 }
 func (stmt *queryStmt) Exec(bean interface{}) (StmtResult, error) {
 	sess := stmt.createQuerySession()
@@ -121,10 +127,13 @@ type joinStmt struct {
 	joinedTbl string
 	joinCond string
 }
-func (stmt *joinStmt) Exec(bean interface{}) (StmtResult, error) {
-	sess := stmt.queryStmt.createQuerySession(map[string]interface{}{
-		_join:[]string{stmt.joinedTbl, stmt.joinCond, stmt.joinType},
+func (stmt *joinStmt) createQuerySession() *Session {
+	return stmt.queryStmt.createQuerySession(map[string]interface{}{
+		_join:[]string{stmt.joinedTbl, stmt.joinCond, stmt.joinType, stmt.selection},
 	})
+}
+func (stmt *joinStmt) Exec(bean interface{}) (StmtResult, error) {
+	sess := stmt.createQuerySession()
 	return stmt.find(sess, bean)
 }
 
@@ -138,6 +147,40 @@ func (stmt *updateStmt) Exec(bean interface{}) (StmtResult, error) {
 		sess = sess.Cols(stmt.cols...)
 	}
 	return sess.Update(bean)
+}
+
+type updateSetStmt struct {
+	*execStmt
+	sets []Set
+}
+func (stmt *updateSetStmt) Exec(bean interface{}) (StmtResult, error) {
+	if len(stmt.sets) == 0 || len(stmt.table) == 0 {
+		return int64(0), nil
+	}
+
+	sb := newSqlBuilder()
+	fmt.Fprintf(sb.q, "UPDATE %s SET", stmt.table)
+	sb.appendSets(stmt.sets)
+	if len(stmt.conds) > 0 {
+		sb.q.WriteString(" WHERE")
+		buildConds(sb, stmt.conds)
+	}
+	params := sb.toParams()
+
+	var sess *Session
+	if stmt.session == nil {
+		sess = stmt.engine.Table(stmt.table)
+	} else {
+		sess = stmt.session.Table(stmt.table)
+	}
+	r, err := sess.Exec(params...)
+	if err != nil {
+		return int64(0), err
+	}
+	if r1, ok := r.(sql.Result); ok {
+		return r1.RowsAffected()
+	}
+	return int64(0), nil
 }
 
 type insertStmt struct {

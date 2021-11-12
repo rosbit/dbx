@@ -12,6 +12,7 @@ func (db *DBI) QueryStmt(tblName string, conds []Cond, options ...O) *queryStmt 
 		},
 		bys: opts.bys,
 		limit: opts.limit,
+		selection: opts.selection,
 	}
 }
 
@@ -76,6 +77,19 @@ func (db *DBI) UpdateStmt(tblName string, conds []Cond, cols []string, options .
 	}
 }
 
+func (db *DBI) UpdateSetStmt(tblName string, sets []Set, conds []Cond, options ...O) *updateSetStmt {
+	opts := getOptions(options...)
+	return &updateSetStmt{
+		execStmt: &execStmt{
+			engine: db,
+			session: opts.session,
+			table: tblName,
+			conds: conds,
+		},
+		sets: sets,
+	}
+}
+
 func (db *DBI) DeleteStmt(tblName string, conds []Cond, options ...O) *deleteStmt {
 	opts := getOptions(options...)
 	return &deleteStmt{
@@ -126,6 +140,11 @@ func InsertStmt(tblName string, options ...O) *insertStmt {
 func UpdateStmt(tblName string, conds []Cond, cols []string, options ...O) *updateStmt {
 	db := getDefaultConnection()
 	return db.UpdateStmt(tblName, conds, cols, options...)
+}
+
+func UpdateSetStmt(tblName string, sets []Set, conds []Cond, options ...O) *updateSetStmt {
+	db := getDefaultConnection()
+	return db.UpdateSetStmt(tblName, sets, conds, options...)
 }
 
 func DeleteStmt(tblName string, conds []Cond, options ...O) *deleteStmt {
@@ -195,9 +214,14 @@ func (db *DBI) Insert(tblName string, vals interface{}, options ...O) error {
 	return err
 }
 
-func (db *DBI) Update(tblName string, conds []Cond, cols []string, vals interface{}, options ...O) error {
-	_, err := db.UpdateStmt(tblName, conds, cols, options...).Exec(vals)
-	return err
+func (db *DBI) Update(tblName string, conds []Cond, cols []string, vals interface{}, options ...O) (int64, error) {
+	ac, err := db.UpdateStmt(tblName, conds, cols, options...).Exec(vals)
+	return ac.(int64), err
+}
+
+func (db *DBI) UpdateSet(tblName string, sets []Set, conds []Cond, options ...O) (int64, error) {
+	ac, err := db.UpdateSetStmt(tblName, sets, conds, options...).Exec(nil)
+	return ac.(int64), err
 }
 
 func (db *DBI) Delete(tblName string, conds []Cond, vals interface{}, options ...O) error {
@@ -260,9 +284,14 @@ func Insert(tblName string, vals interface{}, options ...O) error {
 	return db.Insert(tblName, vals, options...)
 }
 
-func Update(tblName string, conds []Cond, cols []string, vals interface{}, options ...O) error {
+func Update(tblName string, conds []Cond, cols []string, vals interface{}, options ...O) (int64, error) {
 	db := getDefaultConnection()
 	return db.Update(tblName, conds, cols, vals, options...)
+}
+
+func UpdateSet(tblName string, sets []Set, conds []Cond, options ...O) (int64, error) {
+	db := getDefaultConnection()
+	return db.UpdateSet(tblName, sets, conds, options...)
 }
 
 func Delete(tblName string, conds []Cond, vals interface{}, options ...O) error {
@@ -292,6 +321,16 @@ func (stmt *queryStmt) Count(bean interface{}) (int64, error) {
 }
 
 func (stmt *queryStmt) Sum(bean interface{}, col string) (float64, error) {
+	sess := stmt.createQuerySession()
+	return sess.Sum(bean, col)
+}
+
+func (stmt *joinStmt) Count(bean interface{}) (int64, error) {
+	sess := stmt.createQuerySession()
+	return sess.Count(bean)
+}
+
+func (stmt *joinStmt) Sum(bean interface{}, col string) (float64, error) {
 	sess := stmt.createQuerySession()
 	return sess.Sum(bean, col)
 }

@@ -4,6 +4,7 @@ import (
 	"reflect"
 )
 
+// -- conditions ---
 func Where(eq ...Cond) []Cond {
 	return eq
 }
@@ -13,36 +14,44 @@ func Cols(field ...string) []string {
 }
 
 func OnlyCond(cond string) AndElem {
-	return &onlyCond{cond}
+	return wrapperAndElem(&onlyCond{cond:cond})
 }
 
 func Eq(fieldName string, val interface{}) AndElem {
-	return &eqCond{fieldName, val}
+	return wrapperAndElem(&eqCond{field:fieldName, val:val})
+}
+
+func EqX(fieldName string, expr string) AndElem {
+	return wrapperAndElem(&eqExprCond{field:fieldName, expr:expr})
 }
 
 // op: "=", "!=", "<>", ">", ">=", "<", "<=", "like"
 func Op(fieldName string, op string, val interface{}) AndElem {
-	return &opCond{fieldName, op, val}
+	return wrapperAndElem(&opCond{field:fieldName, op:op, val:val})
+}
+
+func OpX(fieldName string, op string, expr string) AndElem {
+	return wrapperAndElem(&opExprCond{field:fieldName, op:op, expr:expr})
 }
 
 func And(cond ...AndElem) AndElem {
-	return &andxCond{cond}
+	return wrapperAndElem(&andxCond{conds:cond})
 }
 
 func Or(cond ...AndElem) AndElem {
-	return &orxCond{cond}
+	return wrapperAndElem(&orxCond{conds:cond})
 }
 
 func Not(cond ...AndElem) AndElem {
-	return &notCond{cond}
+	return wrapperAndElem(&notCond{conds:cond})
 }
 
 func In(fieldName string, val ...interface{}) AndElem {
-	return &inCond{fieldName, copy_i(val...)}
+	return wrapperAndElem(&inCond{field:fieldName, val:copy_i(val...)})
 }
 
 func NotIn(fieldName string, val ...interface{}) AndElem {
-	return &notInCond{fieldName, copy_i(val...)}
+	return wrapperAndElem(&notInCond{field:fieldName, val:copy_i(val...)})
 }
 
 func Sql(sql string) Cond {
@@ -86,6 +95,7 @@ func copy_i(vals ...interface{}) []interface{} {
 	}
 }
 
+// --- order by, group by, limit ---
 var OrderBy = OrderByDesc
 
 func OrderByDesc(field ...string) O {
@@ -124,4 +134,23 @@ func WithSession(session *Session) O {
 	return func(opts *Options) {
 		opts.session = session
 	}
+}
+
+func SelectCols(selection string) O {
+	return func(opts *Options) {
+		opts.selection = selection
+	}
+}
+
+// --- update SET claus --
+func Sets(sets ...Set) []Set {
+	return sets
+}
+
+func SetValue(field string, val interface{}) Set {
+	return &setValue{field, val}
+}
+
+func SetExpr(field string, expr string) Set {
+	return &setExpr{field, expr}
 }
