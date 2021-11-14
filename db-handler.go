@@ -342,3 +342,23 @@ func getOptions(options ...O) *Options {
 	}
 	return opts
 }
+
+func getOneFromList(stmt Stmt, res interface{}) (has bool, err error) {
+	if isSlicePtr(res) {
+		if _, err = stmt.Exec(res); err != nil {
+			return
+		}
+		has = sliceLen(res) > 0
+		return
+	}
+
+	r := mk1ElemSlicePtr(res)
+	if _, err = stmt.Exec(r); err != nil {
+		return
+	}
+	if has = sliceLen(r) > 0; !has {
+		return
+	}
+	copySliceElem(r, res)
+	return
+}

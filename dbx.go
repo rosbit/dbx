@@ -10,6 +10,7 @@ type dbxStmt struct {
 	joinCond string
 	joinType string
 	opts []O
+	selection string
 }
 
 func XStmt(tbl ...string) *dbxStmt {
@@ -39,6 +40,7 @@ func (s *dbxStmt) Table(tbl string, dontReset ...bool) *dbxStmt {
 		s.joinCond = ""
 		s.joinType = ""
 		s.opts = nil
+		s.selection = ""
 	}
 	return s
 }
@@ -138,6 +140,7 @@ func (s *dbxStmt) GroupBy(field ...string) *dbxStmt {
 func (s *dbxStmt) SelectCols(selection string) *dbxStmt {
 	if len(selection) > 0 {
 		s.opts = append(s.opts, SelectCols(selection))
+		s.selection = selection
 	}
 	return s
 }
@@ -155,23 +158,12 @@ func (s *dbxStmt) XSession(session *Session) *dbxStmt {
 func (s *dbxStmt) Get(res interface{}) (has bool, err error) {
 	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
 		s.opts = append(s.opts, Limit(1))
-		if isSlicePtr(res) {
-			if err = s.engine.join(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, res, s.opts...); err != nil {
-				return
-			}
-			has = sliceLen(res) > 0
-			return
-		}
-
-		r := mk1ElemSlicePtr(res)
-		if err = s.engine.join(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, r, s.opts...); err != nil {
-			return
-		}
-		if has = sliceLen(r) > 0; !has {
-			return
-		}
-		copySliceElem(r, res)
-		return
+		stmt := s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...)
+		return getOneFromList(stmt, res)
+	} else if len(s.selection) > 0 {
+		s.opts = append(s.opts, Limit(1))
+		stmt := s.engine.SelectStmt(s.table, []string{s.selection}, s.conds, s.opts...)
+		return getOneFromList(stmt, res)
 	}
 	return s.engine.Get(s.table, s.conds, res, s.opts...)
 }
@@ -179,6 +171,8 @@ func (s *dbxStmt) Get(res interface{}) (has bool, err error) {
 func (s *dbxStmt) List(res interface{}) error {
 	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
 		return s.engine.join(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, res, s.opts...)
+	} else if len(s.selection) > 0 {
+		return s.engine.Select(s.table, []string{s.selection}, s.conds, res, s.opts...)
 	}
 	return s.engine.List(s.table, s.conds, res, s.opts...)
 }
