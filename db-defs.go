@@ -56,9 +56,7 @@ type (
 // --- transaction ---
 type (
 	ArgKey = string
-	TxStmt = Pipe
-	TxStep = Bolt
-
 	TxA func(args *map[ArgKey]interface{})
+	FnTxStmt func(*TxStmt) error
 )
 

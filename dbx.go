@@ -134,6 +134,7 @@ func (s *dbxStmt) GroupBy(field ...string) *dbxStmt {
 	return s
 }
 
+// called after InnerJoin/LeftJoin
 func (s *dbxStmt) SelectCols(selection string) *dbxStmt {
 	if len(selection) > 0 {
 		s.opts = append(s.opts, SelectCols(selection))
@@ -198,10 +199,16 @@ func (s *dbxStmt) Delete(vals interface{}) error {
 }
 
 func (s *dbxStmt) Iter(bean interface{}) (<-chan interface{}) {
+	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
+		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Iter(bean)
+	}
 	return s.engine.Iter(s.table, s.conds, bean, s.opts...)
 }
 
 func (s *dbxStmt) Iterate(bean interface{}, it FnIterate) error {
+	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
+		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Iterate(bean, it)
+	}
 	return s.engine.Iterate(s.table, s.conds, bean, it, s.opts...)
 }
 

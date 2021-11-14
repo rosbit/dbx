@@ -4,24 +4,14 @@ import (
 	"fmt"
 )
 
-type Pipe struct {
+type TxStmt struct {
 	*dbxStmt
 	args map[ArgKey]interface{}
 	session *Session
 }
 
-type FnBolt func(*Pipe)(*Bolt, error)
-
-type Bolt struct {
-	pipe *Pipe
-	bolt FnBolt
-}
-
-func (ts *TxStmt) Jump(bolt FnBolt, txArgs ...TxA) *TxStep {
-	return &Bolt{
-		pipe: ts.engine.newTxStmt(ts.session, ts.table, txArgs...),
-		bolt: bolt,
-	}
+func TxStmts(stmts ...FnTxStmt) []FnTxStmt {
+	return stmts
 }
 
 func (db *DBI) newTxStmt(session *Session, table string, txArgs ...TxA) *TxStmt {
@@ -62,10 +52,6 @@ func TxArgs(args map[ArgKey]interface{}) TxA {
 	}
 }
 
-func (ts *TxStmt) CopyArgs() TxA {
-	return TxArgs(ts.args)
-}
-
 func (ts *TxStmt) Arg(key ArgKey) (arg interface{}) {
 	if len(ts.args) == 0 {
 		return nil
@@ -74,13 +60,24 @@ func (ts *TxStmt) Arg(key ArgKey) (arg interface{}) {
 	return
 }
 
-func RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
-	db := getDefaultConnection()
-	return db.RunTx(bolt, txArgs...)
+func (ts *TxStmt) Set(name ArgKey, val interface{}) {
+	if len(name) == 0 {
+		return
+	}
+	if ts.args == nil {
+		ts.args = map[ArgKey]interface{}{name: val}
+		return
+	}
+	ts.args[name] = val
 }
 
-func (db *DBI) RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
-	if bolt == nil {
+func Tx(stmts []FnTxStmt, txArgs ...TxA) error {
+	db := getDefaultConnection()
+	return db.Tx(stmts, txArgs...)
+}
+
+func (db *DBI) Tx(stmts []FnTxStmt, txArgs ...TxA) (err error) {
+	if len(stmts) == 0 {
 		return nil
 	}
 
@@ -88,9 +85,9 @@ func (db *DBI) RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
 		if r := recover(); r != nil {
 			var ok bool
 			if err, ok = r.(error); ok {
-				return // err to BoltTx() caller
+				return // err to call FnTxStmt()
 			}
-			fmt.Printf("panic in BoltTx: %v\n", r)
+			fmt.Printf("panic in FnTxStmt: %v\n", r)
 		}
 	}()
 
@@ -100,21 +97,17 @@ func (db *DBI) RunTx(bolt FnBolt, txArgs ...TxA) (err error) {
 		return err
 	}
 
-	handleBolt := bolt
-	stmt := db.newTxStmt(session, "", txArgs...)
-	for {
-		nextBolt, err := handleBolt(stmt)
-		if err != nil {
+	txStmt := db.newTxStmt(session, "", txArgs...)
+	for i, _ := range stmts {
+		fnTx := stmts[i]
+		if fnTx == nil {
+			continue
+		}
+		if err = fnTx(txStmt); err != nil {
 			return err
 		}
-		if nextBolt == nil {
-			session.Commit()
-			return nil
-		}
-		stmt, handleBolt = nextBolt.pipe, nextBolt.bolt
-		if stmt == nil || handleBolt == nil {
-			session.Commit()
-			return nil
-		}
 	}
+
+	session.Commit()
+	return nil
 }

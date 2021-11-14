@@ -45,7 +45,7 @@
    
    //  insert/update/delete
    err := db.XStmt("user").Insert(&user)
-   err := db.XStmt("user").Where(dbx.Eq("id", user.Id)).Cols("name", "age").Update(&user)
+   affected, err := db.XStmt("user").Where(dbx.Eq("id", user.Id)).Cols("name", "age").Update(&user)
    err := db.XStmt("user").Where(dbx.Eq("id", user.Id)).Delete(&user)
    
    count, err := db.XStmt("user").Where(dbx.Eq("name", "rosbit")).Count(&user)
@@ -66,58 +66,51 @@
    )
    
    func IncUserBalance(db *dbx.DBI, userId int, balance int) error {
-     // call RunTx to run a transaction. Commit if no error ocurrs, otherwise it will rollback. 
-     return db.RunTx(find_user,
+     // call Tx to run a transaction. Commit if no error ocurrs, otherwise it will rollback. 
+     return db.Tx(
+        dbx.TxStmts(
+            find_user,
+            inc_balance,
+        ),
         dbx.TxArg(arg_balance, balance),
         dbx.TxArg(arg_user_id, userId),
      )
    }
    
    // --- stmt handler ---
-   func find_user(stmt *dbx.TxStmt) (*dbx.TxStep, error) {
+   func find_user(stmt *dbx.TxStmt) (error) {
       userId := stmt.Arg(arg_user_id).(int)
       var user User
       has, err := stmt.Table("user").Where(dbx.Eq("id", userId)).Get(&user)
       if err != nil {
-         return nil, err
+         return err
       }
       if !has {
-         return nil, fmt.Errorf("user not found")
+         return fmt.Errorf("user not found")
       }
-   
-      return stmt.Jump(
-         find_balance,
-         stmt.CopyArgs(),
-      ), nil
-      // return find_balance(stmt) // in this example, they are same.
-      //
-      // If you want add other variable arguments, you can code like the following:
-      // return stmt.Jump(
-      //   find_balance,
-      //   stmt.CopyArgs(),
-      //   dbx.TxArg("arg-name", "arg-val"),
-      // ), nil
+      return nil
    }
    
-   func find_balance(stmt *dbx.TxStmt) (*dbx.TxStep, error) {
+   func inc_balance(stmt *dbx.TxStmt) (error) {
       userId := stmt.Arg(arg_user_id).(int)
       incBalance := stmt.Arg(arg_balance).(int)
       var balance Balance
       has, err := stmt.Table("balance").Where(dbx.Eq("user_id", userId)).Get(&balance)
       if err != nil {
-         return nil, err
+         return err
       }
       if !has {
           // insert a new one
           balance.UserId = userId
           balance.Balance = incBalance
    
-          return nil, stmt.Table("balance").Insert(&balance)
+          return stmt.Table("balance").Insert(&balance)
       }
    
       // increment balance, update it
       balance.Balance += incBalance
-      return nil, stmt.Table("balance").Where(dbx.Eq("user_id", userId)).Cols("balance").Update(&balance)
+      _, err = stmt.Table("balance").Where(dbx.Eq("user_id", userId)).Cols("balance").Update(&balance)
+      return err
    }
    ```
    
