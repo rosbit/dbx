@@ -60,7 +60,7 @@ func (ts *TxStmt) Arg(key ArgKey) (arg interface{}) {
 	return
 }
 
-func (ts *TxStmt) Set(name ArgKey, val interface{}) {
+func (ts *TxStmt) SetArg(name ArgKey, val interface{}) {
 	if len(name) == 0 {
 		return
 	}
