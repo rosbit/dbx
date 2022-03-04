@@ -81,7 +81,10 @@
   }
   
   var userWithTags []UserWithTags
-  err := dbx.XStmt().InnerJoin("user", "userTag", "user.id=userTag.user_id").NextInnerJoin("tag", "userTag.tag_id=tag.id").Where(dbx.Eq("user.id", 1)).List(&userWithTags)
+  err := dbx.XStmt().InnerJoin("user", "userTag", "user.id=userTag.user_id").
+                     NextInnerJoin("tag", "userTag.tag_id=tag.id").
+             Where(dbx.Eq("user.id", 1)).
+             List(&userWithTags)
   ```
 
 - Transaction
