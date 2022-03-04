@@ -6,9 +6,7 @@ type dbxStmt struct {
 	conds []Cond
 	sets []Set
 	cols []string
-	joinedTbl string
-	joinCond string
-	joinType string
+	joinedElems []joinedElem
 	opts []O
 	selection string
 }
@@ -36,9 +34,7 @@ func (s *dbxStmt) Table(tbl string, dontReset ...bool) *dbxStmt {
 		s.conds = nil
 		s.sets = nil
 		s.cols = nil
-		s.joinedTbl = ""
-		s.joinCond = ""
-		s.joinType = ""
+		s.joinedElems = nil
 		s.opts = nil
 		s.selection = ""
 	}
@@ -47,9 +43,13 @@ func (s *dbxStmt) Table(tbl string, dontReset ...bool) *dbxStmt {
 
 func (s *dbxStmt) join(tblName string, joinedTblName string, joinCond string, joinType string) *dbxStmt {
 	s.table = tblName
-	s.joinedTbl = joinedTblName
-	s.joinCond = joinCond
-	s.joinType = joinType
+	s.joinedElems = []joinedElem{
+		joinedElem{
+			joinedTbl: joinedTblName,
+			joinCond: joinCond,
+			joinType: joinType,
+		},
+	}
 	return s
 }
 
@@ -60,6 +60,25 @@ func (s *dbxStmt) InnerJoin(tblName string, joinedTblName string, joinCond strin
 
 func (s *dbxStmt) LeftJoin(tblName string, joinedTblName string, joinCond string) *dbxStmt {
 	s.join(tblName, joinedTblName, joinCond, "LEFT")
+	return s
+}
+
+func (s *dbxStmt) nextJoin(joinedTblName string, joinCond string, joinType string) *dbxStmt {
+	s.joinedElems = append(s.joinedElems, joinedElem{
+		joinedTbl: joinedTblName,
+		joinCond: joinCond,
+		joinType: joinType,
+	})
+	return s
+}
+
+func (s *dbxStmt) NextInnerJoin(joinedTblName string, joinCond string) *dbxStmt {
+	s.nextJoin(joinedTblName, joinCond, "INNER")
+	return s
+}
+
+func (s *dbxStmt) NextLeftJoin(joinedTblName string, joinCond string) *dbxStmt {
+	s.nextJoin(joinedTblName, joinCond, "LEFT")
 	return s
 }
 
@@ -156,9 +175,9 @@ func (s *dbxStmt) XSession(session *Session) *dbxStmt {
 }
 
 func (s *dbxStmt) Get(res interface{}) (has bool, err error) {
-	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
+	if len(s.joinedElems) > 0 {
 		s.opts = append(s.opts, Limit(1))
-		stmt := s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...)
+		stmt := s.generateJoinStmt()
 		return getOneFromList(stmt, res)
 	} else if len(s.selection) > 0 {
 		s.opts = append(s.opts, Limit(1))
@@ -169,8 +188,9 @@ func (s *dbxStmt) Get(res interface{}) (has bool, err error) {
 }
 
 func (s *dbxStmt) List(res interface{}) error {
-	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.join(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, res, s.opts...)
+	if stmt := s.generateJoinStmt(); stmt != nil {
+		_, err := stmt.Exec(res)
+		return err
 	} else if len(s.selection) > 0 {
 		return s.engine.Select(s.table, []string{s.selection}, s.conds, res, s.opts...)
 	}
@@ -193,29 +213,42 @@ func (s *dbxStmt) Delete(vals interface{}) error {
 }
 
 func (s *dbxStmt) Iter(bean interface{}) (<-chan interface{}) {
-	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Iter(bean)
+	if stmt := s.generateJoinStmt(); stmt != nil {
+		return stmt.Iter(bean)
 	}
 	return s.engine.Iter(s.table, s.conds, bean, s.opts...)
 }
 
 func (s *dbxStmt) Iterate(bean interface{}, it FnIterate) error {
-	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Iterate(bean, it)
+	if stmt := s.generateJoinStmt(); stmt != nil {
+		return stmt.Iterate(bean, it)
 	}
 	return s.engine.Iterate(s.table, s.conds, bean, it, s.opts...)
 }
 
 func (s *dbxStmt) Count(bean interface{}) (int64, error) {
-	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Count(bean)
+	if stmt := s.generateJoinStmt(); stmt != nil {
+		return stmt.Count(bean)
 	}
 	return s.engine.ListStmt(s.table, s.conds, s.opts...).Count(bean)
 }
 
 func (s *dbxStmt) Sum(bean interface{}, col string) (float64, error) {
-	if len(s.joinedTbl) > 0 && len(s.joinCond) > 0 {
-		return s.engine.joinStmt(s.table, s.joinedTbl, s.joinCond, s.joinType, s.conds, s.opts...).Sum(bean, col)
+	if stmt := s.generateJoinStmt(); stmt != nil {
+		return stmt.Sum(bean, col)
 	}
 	return s.engine.ListStmt(s.table, s.conds, s.opts...).Sum(bean, col)
+}
+
+func (s *dbxStmt) generateJoinStmt() *joinStmt {
+	if len(s.joinedElems) == 0 {
+		return nil
+	}
+	e0 := &s.joinedElems[0]
+	stmt := s.engine.joinStmt(s.table, e0.joinedTbl, e0.joinCond, e0.joinType, s.conds, s.opts...)
+	for i:=1; i<len(s.joinedElems); i++ {
+		e := &s.joinedElems[i]
+		stmt.join(e.joinedTbl, e.joinCond, e.joinType)
+	}
+	return stmt
 }

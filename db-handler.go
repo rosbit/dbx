@@ -39,9 +39,13 @@ func (db *DBI) SqlStmt(tblName string, sql string, options ...O) *sqlStmt {
 func (db *DBI) joinStmt(tblName string, joinedTblName string, joinCond string, joinType string, conds []Cond, options ...O) *joinStmt {
 	return &joinStmt{
 		listStmt: db.ListStmt(tblName, conds, options...),
-		joinType: joinType,
-		joinedTbl: joinedTblName,
-		joinCond: joinCond,
+		joinedElems: []joinedElem{
+			joinedElem{
+				joinType: joinType,
+				joinedTbl: joinedTblName,
+				joinCond: joinCond,
+			},
+		},
 	}
 }
 
@@ -51,6 +55,23 @@ func (db *DBI) InnerJoinStmt(tblName string, joinedTblName string, joinCond stri
 
 func (db *DBI) LeftJoinStmt(tblName string, joinedTblName string, joinCond string, conds []Cond, options ...O) *joinStmt {
 	return db.joinStmt(tblName, joinedTblName, joinCond, "LEFT", conds, options...)
+}
+
+func (stmt *joinStmt) join(joinedTblName, joinCond, joinType string) *joinStmt {
+	stmt.joinedElems = append(stmt.joinedElems, joinedElem{
+			joinType: joinType,
+			joinedTbl: joinedTblName,
+			joinCond: joinCond,
+	})
+	return stmt
+}
+
+func (stmt *joinStmt) InnerJoin(joinedTblName string, joinCond string) *joinStmt {
+	return stmt.join(joinedTblName, joinCond, "INNER")
+}
+
+func (stmt *joinStmt) LeftJoinStmt(joinedTblName string, joinCond string) *joinStmt {
+	return stmt.join(joinedTblName, joinCond, "LEFT")
 }
 
 func (db *DBI) InsertStmt(tblName string, options ...O) *insertStmt {

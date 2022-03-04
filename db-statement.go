@@ -38,14 +38,20 @@ func (stmt *execStmt) createExecSession(extraQuery ...map[string]interface{}) *S
 					sess.SQL(sql)
 				}
 			case _join:
-				vals := v.([]string)
-				joinedTbl, joinCond, joinType, joinSelection := vals[0], vals[1], vals[2], vals[3]
-				if len(joinSelection) == 0 {
-					sess = sess.Select(fmt.Sprintf("%s.*, %s.*", stmt.table, joinedTbl))
+				jStmt := v.(*joinStmt)
+				if len(jStmt.selection) == 0 {
+					tbls := make([]string, len(jStmt.joinedElems)+1)
+					tbls[0] = fmt.Sprintf("%s.*", stmt.table)
+					for i, e := range jStmt.joinedElems {
+						tbls[i+1] = fmt.Sprintf("%s.*", e.joinedTbl)
+					}
+					sess = sess.Select(strings.Join(tbls, ","))
 				} else {
-					sess = sess.Select(joinSelection)
+					sess = sess.Select(jStmt.selection)
 				}
-				sess.Join(joinType, joinedTbl, joinCond)
+				for _, e := range jStmt.joinedElems {
+					sess.Join(e.joinType, e.joinedTbl, e.joinCond)
+				}
 			default:
 			}
 		}
@@ -121,15 +127,18 @@ func (stmt *sqlStmt) Exec(bean interface{}) (StmtResult, error) {
 	return stmt.find(sess, bean)
 }
 
-type joinStmt struct {
-	*listStmt
+type joinedElem struct {
 	joinType string
 	joinedTbl string
 	joinCond string
 }
+type joinStmt struct {
+	*listStmt
+	joinedElems []joinedElem
+}
 func (stmt *joinStmt) createQuerySession() *Session {
 	return stmt.queryStmt.createQuerySession(map[string]interface{}{
-		_join:[]string{stmt.joinedTbl, stmt.joinCond, stmt.joinType, stmt.selection},
+		_join: stmt,
 	})
 }
 func (stmt *joinStmt) Exec(bean interface{}) (StmtResult, error) {
