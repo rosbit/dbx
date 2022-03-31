@@ -91,7 +91,9 @@ func (s *dbxStmt) Where(cond ...Cond) *dbxStmt {
 
 func (s *dbxStmt) And(cond ...AndElem) *dbxStmt {
 	if len(cond) > 0 {
-		s.conds = append(s.conds, And(cond...))
+		for _, c := range cond {
+			s.conds = append(s.conds, c)
+		}
 	}
 	return s
 }
