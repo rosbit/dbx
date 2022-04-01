@@ -132,7 +132,7 @@ func (e *opCond) mkAndElem() (string, []interface{}) {
 		return e.field, nil
 	}
 	backquote := getQuote(e.field)
-	return fmt.Sprintf("%s%s%s%s?", backquote, e.field, backquote, e.op), []interface{}{e.val}
+	return fmt.Sprintf("%s%s%s %s ?", backquote, e.field, backquote, e.op), []interface{}{e.val}
 }
 
 type opExprCond struct {

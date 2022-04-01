@@ -2,6 +2,7 @@ package dbx
 
 import (
 	"reflect"
+	"strings"
 )
 
 // -- conditions ---
@@ -21,13 +22,40 @@ func Eq(fieldName string, val interface{}) AndElem {
 	return wrapperAndElem(&eqCond{field:fieldName, val:val})
 }
 
+func Ne(fieldName string, val interface{}) AndElem {
+	return Op(fieldName, "<>", val)
+}
+
+func Gt(fieldName string, val interface{}) AndElem {
+	return Op(fieldName, ">", val)
+}
+
+func Ge(fieldName string, val interface{}) AndElem {
+	return Op(fieldName, ">=", val)
+}
+
+func Lt(fieldName string, val interface{}) AndElem {
+	return Op(fieldName, "<", val)
+}
+
+func Le(fieldName string, val interface{}) AndElem {
+	return Op(fieldName, "<=", val)
+}
+
 func EqX(fieldName string, expr string) AndElem {
 	return wrapperAndElem(&eqExprCond{field:fieldName, expr:expr})
 }
 
 // op: "=", "!=", "<>", ">", ">=", "<", "<=", "like"
 func Op(fieldName string, op string, val interface{}) AndElem {
-	return wrapperAndElem(&opCond{field:fieldName, op:op, val:val})
+	switch strings.ToLower(op) {
+	case "in":
+		return In(fieldName, val)
+	case "not in":
+		return NotIn(fieldName, val)
+	default:
+		return wrapperAndElem(&opCond{field:fieldName, op:op, val:val})
+	}
 }
 
 func OpX(fieldName string, op string, expr string) AndElem {
