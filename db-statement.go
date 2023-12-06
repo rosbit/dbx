@@ -158,6 +158,15 @@ func (stmt *updateStmt) Exec(bean interface{}) (StmtResult, error) {
 	return sess.Update(bean)
 }
 
+type rawUpdateStmt struct {
+	*execStmt
+	sql string
+}
+func (stmt *rawUpdateStmt) Exec(_ interface{}) (StmtResult, error) {
+	sess := stmt.execStmt.createExecSession()
+	return sess.Exec(stmt.sql)
+}
+
 type updateSetStmt struct {
 	*execStmt
 	sets []Set

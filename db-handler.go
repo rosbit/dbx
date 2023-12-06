@@ -98,6 +98,18 @@ func (db *DBI) UpdateStmt(tblName string, conds []Cond, cols []string, options .
 	}
 }
 
+func (db *DBI) UpdateSqlStmt(tblName string, sql string, options ...O) *rawUpdateStmt {
+	opts := getOptions(options...)
+	return &rawUpdateStmt{
+		execStmt: &execStmt{
+			engine: db,
+			session: opts.session,
+			table: tblName,
+		},
+		sql: sql,
+	}
+}
+
 func (db *DBI) UpdateSetStmt(tblName string, sets []Set, conds []Cond, options ...O) *updateSetStmt {
 	opts := getOptions(options...)
 	return &updateSetStmt{
@@ -161,6 +173,11 @@ func InsertStmt(tblName string, options ...O) *insertStmt {
 func UpdateStmt(tblName string, conds []Cond, cols []string, options ...O) *updateStmt {
 	db := getDefaultConnection()
 	return db.UpdateStmt(tblName, conds, cols, options...)
+}
+
+func UpdateSqlStmt(tblName string, sql string, options ...O) *rawUpdateStmt {
+	db := getDefaultConnection()
+	return db.UpdateSqlStmt(tblName, sql, options...)
 }
 
 func UpdateSetStmt(tblName string, sets []Set, conds []Cond, options ...O) *updateSetStmt {
@@ -254,6 +271,11 @@ func (db *DBI) RunSQL(tblName string, sql string, res interface{}, options ...O)
 	stmt := db.SqlStmt(tblName, sql, options...)
 	_, err := stmt.Exec(res)
 	return err
+}
+
+func (db *DBI) ExecSQL(tblName string, sql string, options ...O) (int64, error) {
+	ac, err := db.UpdateSqlStmt(tblName, sql, options...).Exec(nil)
+	return ac.(int64), err
 }
 
 func (db *DBI) Iter(tblName string, conds []Cond, bean interface{}, options ...O) (<-chan interface{}) {
