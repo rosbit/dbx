@@ -163,8 +163,19 @@ type rawUpdateStmt struct {
 	sql string
 }
 func (stmt *rawUpdateStmt) Exec(_ interface{}) (StmtResult, error) {
+	if len(stmt.table) == 0 {
+		return int64(0), nil
+	}
+
 	sess := stmt.execStmt.createExecSession()
-	return sess.Exec(stmt.sql)
+	r, err := sess.Exec(stmt.sql)
+	if err != nil {
+		return int64(0), err
+	}
+	if r1, ok := r.(sql.Result); ok {
+		return r1.RowsAffected()
+	}
+	return int64(0), nil
 }
 
 type updateSetStmt struct {
