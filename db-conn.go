@@ -3,6 +3,7 @@ package dbx
 
 import (
 	"github.com/rosbit/xorm"
+	"runtime"
 )
 
 type DBI struct {
@@ -35,6 +36,7 @@ func CreateDriverDBInstance(driverName, dsn string, debug bool) (db *DBI, err er
 		if debug {
 			dbInst.ShowSQL(true)
 		}
+		runtime.SetFinalizer(db, freeDBI)
 	}
 	return
 }
@@ -51,6 +53,14 @@ func Close() error {
 	return DB.Close()
 }
 
-func (db *DBI) Close() error {
-	return db.Engine.Close()
+func (db *DBI) Close() (err error) {
+	if db.Engine != nil {
+		err = db.Engine.Close()
+		db.Engine = nil
+	}
+	return
+}
+
+func freeDBI(db *DBI) {
+	db.Close()
 }
