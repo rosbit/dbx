@@ -1,5 +1,7 @@
 package dbx
 
+type DBXStmt = dbxStmt
+
 type dbxStmt struct {
 	engine *DBI
 	table string
